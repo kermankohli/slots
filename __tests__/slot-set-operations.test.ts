@@ -7,142 +7,380 @@ import {
 } from '../src/utils/slot-set-operations';
 import { Slot, MetadataMerger } from '../src/types';
 
-describe('slot set operations', () => {
-  const baseDate = new Date('2024-01-01T10:00:00Z');
-  
-  const createSlot = (startHours: number, endHours: number, metadata: Record<string, any> = {}): Slot => ({
-    start: new Date(baseDate.getTime() + startHours * 3600000),
-    end: new Date(baseDate.getTime() + endHours * 3600000),
-    metadata
+describe('Slot Set Operations', () => {
+  // Helper to create dates relative to a base time
+  const baseTime = new Date('2024-01-01T00:00:00Z');
+  const createDate = (offsetHours: number) => new Date(baseTime.getTime() + offsetHours * 3600000);
+
+  // Test metadata merger that keeps the second slot's metadata
+  const keepSecondMetadata: MetadataMerger = (a, b) => b;
+
+  describe('Edge Behavior', () => {
+    describe('inclusive edges (default)', () => {
+      it('should merge slots that touch at edges', () => {
+        const slotA: Slot = {
+          start: createDate(0),
+          end: createDate(2),
+          metadata: { owner: 'alice' }
+        };
+        const slotB: Slot = {
+          start: createDate(2),
+          end: createDate(4),
+          metadata: { owner: 'bob' }
+        };
+
+        const result = unionSlots(slotA, slotB, { 
+          metadataMerger: keepSecondMetadata,
+          edgeStrategy: 'inclusive'
+        });
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({
+          start: createDate(0),
+          end: createDate(4),
+          metadata: { owner: 'bob' }
+        });
+      });
+
+      it('should consider point of contact as intersection', () => {
+        const slotA: Slot = {
+          start: createDate(0),
+          end: createDate(2),
+          metadata: { owner: 'alice' }
+        };
+        const slotB: Slot = {
+          start: createDate(2),
+          end: createDate(4),
+          metadata: { owner: 'bob' }
+        };
+
+        const result = intersectSlots(slotA, slotB, { 
+          metadataMerger: keepSecondMetadata,
+          edgeStrategy: 'inclusive'
+        });
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({
+          start: createDate(2),
+          end: createDate(2),
+          metadata: { owner: 'bob' }
+        });
+      });
+    });
+
+    describe('exclusive edges', () => {
+      it('should keep slots separate that only touch', () => {
+        const slotA: Slot = {
+          start: createDate(0),
+          end: createDate(2),
+          metadata: { owner: 'alice' }
+        };
+        const slotB: Slot = {
+          start: createDate(2),
+          end: createDate(4),
+          metadata: { owner: 'bob' }
+        };
+
+        const result = unionSlots(slotA, slotB, { 
+          metadataMerger: keepSecondMetadata,
+          edgeStrategy: 'exclusive'
+        });
+        expect(result).toHaveLength(2);
+        expect(result).toEqual([
+          {
+            start: createDate(0),
+            end: createDate(2),
+            metadata: { owner: 'alice' }
+          },
+          {
+            start: createDate(2),
+            end: createDate(4),
+            metadata: { owner: 'bob' }
+          }
+        ]);
+      });
+
+      it('should consider point of contact as empty intersection', () => {
+        const slotA: Slot = {
+          start: createDate(0),
+          end: createDate(2),
+          metadata: { owner: 'alice' }
+        };
+        const slotB: Slot = {
+          start: createDate(2),
+          end: createDate(4),
+          metadata: { owner: 'bob' }
+        };
+
+        const result = intersectSlots(slotA, slotB, { 
+          metadataMerger: keepSecondMetadata,
+          edgeStrategy: 'exclusive'
+        });
+        expect(result).toHaveLength(0);
+      });
+
+      it('should preserve edge points in difference', () => {
+        const slotA: Slot = {
+          start: createDate(0),
+          end: createDate(2),
+          metadata: { owner: 'alice' }
+        };
+        const slotB: Slot = {
+          start: createDate(2),
+          end: createDate(4),
+          metadata: { owner: 'bob' }
+        };
+
+        const result = differenceSlots(slotA, slotB, { 
+          metadataMerger: keepSecondMetadata,
+          edgeStrategy: 'exclusive'
+        });
+        expect(result).toHaveLength(2);
+        expect(result).toEqual([
+          {
+            start: createDate(0),
+            end: createDate(2),
+            metadata: { owner: 'alice' }
+          },
+          {
+            start: createDate(2),
+            end: createDate(2),
+            metadata: { owner: 'alice' }
+          }
+        ]);
+      });
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle zero-duration slots at edges', () => {
+      const slotA: Slot = {
+        start: createDate(2),
+        end: createDate(2), // Zero duration
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(2),
+        end: createDate(4),
+        metadata: { owner: 'bob' }
+      };
+
+      // Union should include zero-duration slot
+      const unionResult = unionSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(unionResult).toHaveLength(1);
+      expect(unionResult[0]).toEqual({
+        start: createDate(2),
+        end: createDate(4),
+        metadata: { owner: 'bob' }
+      });
+
+      // Intersection should be the zero-duration point
+      const intersectionResult = intersectSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(intersectionResult).toHaveLength(1);
+      expect(intersectionResult[0]).toEqual({
+        start: createDate(2),
+        end: createDate(2),
+        metadata: { owner: 'bob' }
+      });
+    });
   });
 
   describe('intersectSlots', () => {
     it('should return empty for non-overlapping slots', () => {
-      const result = intersectSlots(createSlot(1, 2), createSlot(3, 4));
-      expect(result.type).toBe('empty');
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(2),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(3),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
+
+      const result = intersectSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(0);
     });
 
-    it('should return overlapping portion', () => {
-      const result = intersectSlots(createSlot(1, 3), createSlot(2, 4));
-      expect(result.type).toBe('single');
-      if (result.type === 'single') {
-        expect(result.slot.start).toEqual(createSlot(2, 3).start);
-        expect(result.slot.end).toEqual(createSlot(2, 3).end);
-      }
-    });
+    it('should return intersection with merged metadata', () => {
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(3),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(2),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
 
-    it('should merge metadata', () => {
-      const customMerger: MetadataMerger = (m1, m2) => ({ 
-        values: [...(m1.values || []), ...(m2.values || [])] 
+      const result = intersectSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        start: createDate(2),
+        end: createDate(3),
+        metadata: { owner: 'bob' }
       });
-
-      const result = intersectSlots(
-        createSlot(1, 3, { values: [1] }),
-        createSlot(2, 4, { values: [2] }),
-        customMerger
-      );
-      expect(result.type).toBe('single');
-      if (result.type === 'single') {
-        expect(result.slot.metadata).toEqual({ values: [1, 2] });
-      }
     });
   });
 
   describe('unionSlots', () => {
     it('should return both slots for non-overlapping slots', () => {
-      const result = unionSlots(createSlot(1, 2), createSlot(3, 4));
-      expect(result.type).toBe('multiple');
-      if (result.type === 'multiple') {
-        expect(result.slots).toHaveLength(2);
-      }
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(2),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(3),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
+
+      const result = unionSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(slotA);
+      expect(result[1]).toEqual(slotB);
     });
 
-    it('should return outer bounds for overlapping slots', () => {
-      const result = unionSlots(createSlot(1, 3), createSlot(2, 4));
-      expect(result.type).toBe('single');
-      if (result.type === 'single') {
-        expect(result.slot.start).toEqual(createSlot(1, 4).start);
-        expect(result.slot.end).toEqual(createSlot(1, 4).end);
-      }
+    it('should merge overlapping slots with metadata', () => {
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(3),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(2),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
+
+      const result = unionSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        start: createDate(0),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      });
     });
   });
 
   describe('differenceSlots', () => {
     it('should return original slot if no overlap', () => {
-      const slot = createSlot(1, 2);
-      const result = differenceSlots(slot, createSlot(3, 4));
-      expect(result.type).toBe('single');
-      if (result.type === 'single') {
-        expect(result.slot).toEqual(slot);
-      }
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(2),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(3),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
+
+      const result = differenceSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(slotA);
     });
 
-    it('should return remaining parts', () => {
-      const result = differenceSlots(createSlot(1, 4), createSlot(2, 3));
-      expect(result.type).toBe('multiple');
-      if (result.type === 'multiple') {
-        expect(result.slots).toHaveLength(2);
-        expect(result.slots[0].start).toEqual(createSlot(1, 2).start);
-        expect(result.slots[0].end).toEqual(createSlot(1, 2).end);
-        expect(result.slots[1].start).toEqual(createSlot(3, 4).start);
-        expect(result.slots[1].end).toEqual(createSlot(3, 4).end);
-      }
+    it('should return remaining parts of first slot', () => {
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(5),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(2),
+        end: createDate(3),
+        metadata: { owner: 'bob' }
+      };
+
+      const result = differenceSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        start: createDate(0),
+        end: createDate(2),
+        metadata: { owner: 'alice' }
+      });
+      expect(result[1]).toEqual({
+        start: createDate(3),
+        end: createDate(5),
+        metadata: { owner: 'alice' }
+      });
     });
   });
 
   describe('symmetricDifferenceSlots', () => {
     it('should return both slots if no overlap', () => {
-      const result = symmetricDifferenceSlots(createSlot(1, 2), createSlot(3, 4));
-      expect(result.type).toBe('multiple');
-      if (result.type === 'multiple') {
-        expect(result.slots).toHaveLength(2);
-      }
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(2),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(3),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
+
+      const result = symmetricDifferenceSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(slotA);
+      expect(result[1]).toEqual(slotB);
     });
 
-    it('should return non-overlapping parts', () => {
-      const result = symmetricDifferenceSlots(createSlot(1, 3), createSlot(2, 4));
-      expect(result.type).toBe('multiple');
-      if (result.type === 'multiple') {
-        expect(result.slots).toHaveLength(2);
-        expect(result.slots[0].start).toEqual(createSlot(1, 2).start);
-        expect(result.slots[0].end).toEqual(createSlot(1, 2).end);
-        expect(result.slots[1].start).toEqual(createSlot(3, 4).start);
-        expect(result.slots[1].end).toEqual(createSlot(3, 4).end);
-      }
+    it('should return non-overlapping parts of both slots', () => {
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(4),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(2),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
+
+      const result = symmetricDifferenceSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        start: createDate(0),
+        end: createDate(2),
+        metadata: { owner: 'alice' }
+      });
+      expect(result[1]).toEqual({
+        start: createDate(4),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      });
     });
   });
 
   describe('applySetOperation', () => {
-    it('should handle empty array', () => {
-      const result = applySetOperation('union', []);
-      expect(result.type).toBe('empty');
-    });
+    it('should apply the correct operation', () => {
+      const slotA: Slot = {
+        start: createDate(0),
+        end: createDate(3),
+        metadata: { owner: 'alice' }
+      };
+      const slotB: Slot = {
+        start: createDate(2),
+        end: createDate(5),
+        metadata: { owner: 'bob' }
+      };
 
-    it('should handle single slot', () => {
-      const slot = createSlot(1, 2);
-      const result = applySetOperation('union', [slot]);
-      expect(result.type).toBe('single');
-      if (result.type === 'single') {
-        expect(result.slot).toEqual(slot);
-      }
-    });
+      const options = { metadataMerger: keepSecondMetadata };
 
-    it('should apply operation to multiple slots', () => {
-      const slots = [
-        createSlot(1, 3),
-        createSlot(2, 4),
-        createSlot(5, 6)
-      ];
+      // Test each operation
+      const unionResult = applySetOperation('union', slotA, slotB, options);
+      expect(unionResult).toHaveLength(1);
 
-      const union = applySetOperation('union', slots);
-      expect(union.type).toBe('single');
-      if (union.type === 'single') {
-        expect(union.slot.start).toEqual(createSlot(1, 6).start);
-        expect(union.slot.end).toEqual(createSlot(1, 6).end);
-      }
+      const intersectionResult = applySetOperation('intersection', slotA, slotB, options);
+      expect(intersectionResult).toHaveLength(1);
 
-      const intersection = applySetOperation('intersection', slots);
-      expect(intersection.type).toBe('empty');
+      const differenceResult = applySetOperation('difference', slotA, slotB, options);
+      expect(differenceResult).toHaveLength(1);
+
+      const symmetricDiffResult = applySetOperation('symmetric_difference', slotA, slotB, options);
+      expect(symmetricDiffResult).toHaveLength(2);
     });
   });
 }); 

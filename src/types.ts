@@ -4,7 +4,7 @@
 export interface Slot {
   start: Date;
   end: Date;
-  metadata: SlotMetadata;
+  metadata: Metadata;
 }
 
 /**
@@ -17,7 +17,7 @@ export interface SlotMetadata {
 /**
  * Function type for custom metadata merging
  */
-export type MetadataMerger = (meta1: SlotMetadata, meta2: SlotMetadata) => SlotMetadata;
+export type MetadataMerger = (a: Metadata, b: Metadata) => Metadata;
 
 /**
  * Strategy for determining if slots overlap
@@ -89,23 +89,21 @@ export function composeOperators<T>(...operators: SlotOperator<T>[]): SlotOperat
 /**
  * Available set operations for slots
  */
-export type SlotSetOperation = 
-  | 'union'               // Outer bounds of all overlapping slots
-  | 'intersection'        // Only the overlapping portions
-  | 'difference'          // Parts of first slot that don't overlap with second slot
-  | 'symmetric_difference'; // Parts that belong to only one slot
+export type SlotSetOperation = 'union' | 'intersection' | 'difference' | 'symmetric_difference';
 
 /**
  * Result of a slot operation
  */
-export type SlotOperationResult = 
-  | { type: 'empty' }
-  | { type: 'single'; slot: Slot }
-  | { type: 'multiple'; slots: Slot[] };
+export type SlotOperationResult = Slot[];
 
 /**
  * Options for slot operations
  */
 export interface SlotOperationOptions {
-  metadataMerger?: MetadataMerger;
-} 
+  metadataMerger: MetadataMerger;
+  edgeStrategy?: EdgeStrategy;  // Optional with default in implementation
+}
+
+export type Metadata = Record<string, any>;
+
+export type EdgeStrategy = 'inclusive' | 'exclusive'; 
