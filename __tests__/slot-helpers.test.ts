@@ -1,4 +1,4 @@
-import { doSlotsOverlap, mergeSlots, mergeOverlappingSlots } from '../src/utils/slot-helpers';
+import { doSlotsOverlap, mergeSlots, mergeOverlappingSlots, generateSlots } from '../src/utils/slot-helpers';
 import { Slot, MetadataMerger, defaultMetadataMerger } from '../src/types';
 
 describe('slot helpers', () => {
@@ -111,6 +111,67 @@ describe('slot helpers', () => {
         ...createSlot(1, 4),
         metadata: { value: 3 } // Last value in original array
       });
+    });
+  });
+
+  describe('generateSlots', () => {
+    const hour = 3600000; // 1 hour in milliseconds
+
+    it('should generate slots with given duration and overlap', () => {
+      const start = new Date('2024-01-01T10:00:00Z');
+      const end = new Date('2024-01-01T12:00:00Z');
+      const slots = generateSlots(start, end, hour, hour/2, { type: 'test' });
+
+      expect(slots).toHaveLength(3); // Three one-hour slots with 30-min overlap
+      expect(slots[0]).toEqual({
+        start: new Date('2024-01-01T10:00:00Z'),
+        end: new Date('2024-01-01T11:00:00Z'),
+        metadata: { type: 'test' }
+      });
+      expect(slots[1]).toEqual({
+        start: new Date('2024-01-01T10:30:00Z'),
+        end: new Date('2024-01-01T11:30:00Z'),
+        metadata: { type: 'test' }
+      });
+      expect(slots[2]).toEqual({
+        start: new Date('2024-01-01T11:00:00Z'),
+        end: new Date('2024-01-01T12:00:00Z'),
+        metadata: { type: 'test' }
+      });
+    });
+
+    it('should return empty array if start date is after end date', () => {
+      const start = new Date('2024-01-01T12:00:00Z');
+      const end = new Date('2024-01-01T10:00:00Z');
+      const slots = generateSlots(start, end, hour, hour);
+      expect(slots).toEqual([]);
+    });
+
+    it('should return empty array if start date equals end date', () => {
+      const date = new Date('2024-01-01T10:00:00Z');
+      const slots = generateSlots(date, date, hour, hour);
+      expect(slots).toEqual([]);
+    });
+
+    it('should throw error for non-positive duration', () => {
+      const start = new Date('2024-01-01T10:00:00Z');
+      const end = new Date('2024-01-01T12:00:00Z');
+      expect(() => generateSlots(start, end, 0, hour)).toThrow();
+      expect(() => generateSlots(start, end, -hour, hour)).toThrow();
+    });
+
+    it('should throw error for non-positive overlap interval', () => {
+      const start = new Date('2024-01-01T10:00:00Z');
+      const end = new Date('2024-01-01T12:00:00Z');
+      expect(() => generateSlots(start, end, hour, 0)).toThrow();
+      expect(() => generateSlots(start, end, hour, -hour)).toThrow();
+    });
+
+    it('should apply default empty metadata if not provided', () => {
+      const start = new Date('2024-01-01T10:00:00Z');
+      const end = new Date('2024-01-01T11:00:00Z');
+      const slots = generateSlots(start, end, hour, hour);
+      expect(slots[0].metadata).toEqual({});
     });
   });
 }); 

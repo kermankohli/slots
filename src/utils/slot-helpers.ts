@@ -53,4 +53,43 @@ export function mergeOverlappingSlots(
   }
   
   return result;
+}
+
+/**
+ * Generates an array of slots between start and end date with given duration and overlap interval
+ * @param startDate The start date for the first slot
+ * @param endDate The end date for the last slot
+ * @param duration Duration of each slot in milliseconds
+ * @param overlapInterval Interval between start of consecutive slots in milliseconds
+ * @param metadata Optional metadata to apply to all generated slots
+ * @returns Array of generated slots
+ */
+export function generateSlots(
+  startDate: Date,
+  endDate: Date,
+  duration: number,
+  overlapInterval: number,
+  metadata: Record<string, any> = {}
+): Slot[] {
+  if (startDate >= endDate) {
+    return [];
+  }
+
+  if (duration <= 0 || overlapInterval <= 0) {
+    throw new Error('Duration and overlap interval must be positive numbers');
+  }
+
+  const slots: Slot[] = [];
+  let currentStart = startDate;
+
+  while (currentStart.getTime() + duration <= endDate.getTime()) {
+    slots.push({
+      start: new Date(currentStart),
+      end: new Date(currentStart.getTime() + duration),
+      metadata: { ...metadata }
+    });
+    currentStart = new Date(currentStart.getTime() + overlapInterval);
+  }
+
+  return slots;
 } 
