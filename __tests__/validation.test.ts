@@ -4,8 +4,8 @@ import { Slot } from '../src/types';
 
 describe('isSlot', () => {
   const validSlot: Slot = {
-    start: DateTime.fromISO('2024-03-20T10:00:00'),
-    end: DateTime.fromISO('2024-03-20T11:00:00'),
+    start: DateTime.fromISO('2024-03-20T10:00:00Z'),
+    end: DateTime.fromISO('2024-03-20T11:00:00Z'),
     metadata: {
       type: 'test'
     }
@@ -38,8 +38,8 @@ describe('isSlot', () => {
   it('should return false when end is before start', () => {
     const invalidSlot = {
       ...validSlot,
-      start: DateTime.fromISO('2024-03-20T11:00:00'),
-      end: DateTime.fromISO('2024-03-20T10:00:00')
+      start: DateTime.fromISO('2024-03-20T11:00:00Z'),
+      end: DateTime.fromISO('2024-03-20T10:00:00Z')
     };
     expect(isSlot(invalidSlot)).toBe(false);
   });
