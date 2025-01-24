@@ -1,12 +1,13 @@
+import { DateTime } from 'luxon';
 import { addSlots, removeSlots, updateSlot } from '../src';
 import { Slot, composeOperators } from '../src/types';
 
 describe('slot operations', () => {
-  const baseDate = new Date('2024-01-01T10:00:00Z');
+  const baseDate = DateTime.fromISO('2024-01-01T10:00:00Z');
   
   const createSlot = (startHours: number, endHours: number, metadata: Record<string, any> = {}): Slot => ({
-    start: new Date(baseDate.getTime() + startHours * 3600000),
-    end: new Date(baseDate.getTime() + endHours * 3600000),
+    start: baseDate.plus({ hours: startHours }),
+    end: baseDate.plus({ hours: endHours }),
     metadata
   });
 

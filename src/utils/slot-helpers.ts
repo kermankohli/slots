@@ -1,14 +1,20 @@
+import { DateTime, Duration, Interval } from 'luxon';
 import { Slot, MetadataMerger, defaultMetadataMerger, OverlapStrategy } from '../types';
 
 /**
  * Checks if two slots overlap based on the specified strategy
  */
 export function doSlotsOverlap(a: Slot, b: Slot, strategy: OverlapStrategy = 'strict'): boolean {
+  const interval1 = Interval.fromDateTimes(a.start, a.end);
+  const interval2 = Interval.fromDateTimes(b.start, b.end);
+  
   if (strategy === 'strict') {
-    return (a.start < b.end && a.end > b.start);
+    return interval1.overlaps(interval2);
   } else {
     // inclusive: slots touching at boundaries are considered overlapping
-    return (a.start <= b.end && a.end >= b.start);
+    return interval1.abutsStart(interval2) || 
+           interval1.abutsEnd(interval2) || 
+           interval1.overlaps(interval2);
   }
 }
 
@@ -17,8 +23,8 @@ export function doSlotsOverlap(a: Slot, b: Slot, strategy: OverlapStrategy = 'st
  */
 export function mergeSlots(a: Slot, b: Slot, metadataMerger: MetadataMerger = defaultMetadataMerger): Slot {
   return {
-    start: new Date(Math.min(a.start.getTime(), b.start.getTime())),
-    end: new Date(Math.max(a.end.getTime(), b.end.getTime())),
+    start: DateTime.min(a.start, b.start),
+    end: DateTime.max(a.end, b.end),
     metadata: metadataMerger(a.metadata, b.metadata)
   };
 }
@@ -34,7 +40,7 @@ export function mergeOverlappingSlots(
   if (slots.length <= 1) return slots;
 
   // Sort slots by start time
-  const sortedSlots = [...slots].sort((a, b) => a.start.getTime() - b.start.getTime());
+  const sortedSlots = [...slots].sort((a, b) => a.start.toMillis() - b.start.toMillis());
   const result: Slot[] = [];
   
   let i = 0;
@@ -65,30 +71,30 @@ export function mergeOverlappingSlots(
  * @returns Array of generated slots
  */
 export function generateSlots(
-  startDate: Date,
-  endDate: Date,
-  duration: number,
-  overlapInterval: number,
+  start: DateTime,
+  end: DateTime,
+  duration: Duration,
+  overlapInterval: Duration,
   metadata: Record<string, any> = {}
 ): Slot[] {
-  if (startDate >= endDate) {
+  if (start >= end) {
     return [];
   }
 
-  if (duration <= 0 || overlapInterval <= 0) {
-    throw new Error('Duration and overlap interval must be positive numbers');
+  if (!duration.isValid || !overlapInterval.isValid || duration.toMillis() <= 0 || overlapInterval.toMillis() <= 0) {
+    throw new Error('Duration and overlap interval must be positive and valid');
   }
 
   const slots: Slot[] = [];
-  let currentStart = startDate;
+  let currentStart = start;
 
-  while (currentStart.getTime() + duration <= endDate.getTime()) {
+  while (currentStart.plus(duration) <= end) {
     slots.push({
-      start: new Date(currentStart),
-      end: new Date(currentStart.getTime() + duration),
+      start: currentStart,
+      end: currentStart.plus(duration),
       metadata: { ...metadata }
     });
-    currentStart = new Date(currentStart.getTime() + overlapInterval);
+    currentStart = currentStart.plus(overlapInterval);
   }
 
   return slots;

@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import { Slot, SlotOperationResult, SlotOperationOptions, MetadataMerger, EdgeStrategy } from '../types';
 
 /**
@@ -21,11 +22,11 @@ export function intersectSlots(slotA: Slot, slotB: Slot, options: SlotOperationO
     return [];
   }
 
-  const start = new Date(Math.max(slotA.start.getTime(), slotB.start.getTime()));
-  const end = new Date(Math.min(slotA.end.getTime(), slotB.end.getTime()));
+  const start = DateTime.max(slotA.start, slotB.start);
+  const end = DateTime.min(slotA.end, slotB.end);
   
   // For exclusive edges, if start equals end, there's no real overlap
-  if (edgeStrategy === 'exclusive' && start.getTime() === end.getTime()) {
+  if (edgeStrategy === 'exclusive' && start.equals(end)) {
     return [];
   }
 
@@ -41,15 +42,15 @@ export function unionSlots(slotA: Slot, slotB: Slot, options: SlotOperationOptio
 
   // For exclusive edges, we need a gap to consider them separate
   const shouldMerge = edgeStrategy === 'inclusive' 
-    ? slotA.end.getTime() >= slotB.start.getTime() && slotA.start.getTime() <= slotB.end.getTime()
-    : slotA.end.getTime() > slotB.start.getTime() && slotA.start.getTime() < slotB.end.getTime();
+    ? slotA.end >= slotB.start && slotA.start <= slotB.end
+    : slotA.end > slotB.start && slotA.start < slotB.end;
 
   if (!shouldMerge) {
-    return [slotA, slotB].sort((a, b) => a.start.getTime() - b.start.getTime());
+    return [slotA, slotB].sort((a, b) => a.start.toMillis() - b.start.toMillis());
   }
 
-  const start = new Date(Math.min(slotA.start.getTime(), slotB.start.getTime()));
-  const end = new Date(Math.max(slotA.end.getTime(), slotB.end.getTime()));
+  const start = DateTime.min(slotA.start, slotB.start);
+  const end = DateTime.max(slotA.end, slotB.end);
   const metadata = metadataMerger(slotA.metadata, slotB.metadata);
 
   return [{ start, end, metadata }];
@@ -66,7 +67,7 @@ export function differenceSlots(slotA: Slot, slotB: Slot, options: SlotOperation
     const results: Slot[] = [];
     
     // Add the main slot if it exists
-    if (slotA.start.getTime() < slotB.start.getTime() || slotA.end.getTime() > slotB.end.getTime()) {
+    if (slotA.start < slotB.start || slotA.end > slotB.end) {
       results.push({
         start: slotA.start,
         end: slotB.start,
@@ -75,7 +76,7 @@ export function differenceSlots(slotA: Slot, slotB: Slot, options: SlotOperation
     }
 
     // Preserve touching points
-    if (slotA.end.getTime() === slotB.start.getTime()) {
+    if (slotA.end.equals(slotB.start)) {
       results.push({
         start: slotA.end,
         end: slotA.end,
@@ -83,7 +84,7 @@ export function differenceSlots(slotA: Slot, slotB: Slot, options: SlotOperation
       });
     }
 
-    return results.sort((a, b) => a.start.getTime() - b.start.getTime());
+    return results.sort((a, b) => a.start.toMillis() - b.start.toMillis());
   }
 
   // For inclusive mode, use original logic
@@ -94,7 +95,7 @@ export function differenceSlots(slotA: Slot, slotB: Slot, options: SlotOperation
   const results: Slot[] = [];
 
   // Left part
-  if (slotA.start.getTime() < slotB.start.getTime()) {
+  if (slotA.start < slotB.start) {
     results.push({
       start: slotA.start,
       end: slotB.start,
@@ -103,7 +104,7 @@ export function differenceSlots(slotA: Slot, slotB: Slot, options: SlotOperation
   }
 
   // Right part
-  if (slotA.end.getTime() > slotB.end.getTime()) {
+  if (slotA.end > slotB.end) {
     results.push({
       start: slotB.end,
       end: slotA.end,
@@ -111,7 +112,7 @@ export function differenceSlots(slotA: Slot, slotB: Slot, options: SlotOperation
     });
   }
 
-  return results.sort((a, b) => a.start.getTime() - b.start.getTime());
+  return results.sort((a, b) => a.start.toMillis() - b.start.toMillis());
 }
 
 /**
@@ -121,7 +122,7 @@ export function symmetricDifferenceSlots(slotA: Slot, slotB: Slot, options: Slot
   const aMinusB = differenceSlots(slotA, slotB, options);
   const bMinusA = differenceSlots(slotB, slotA, options);
 
-  return [...aMinusB, ...bMinusA].sort((a, b) => a.start.getTime() - b.start.getTime());
+  return [...aMinusB, ...bMinusA].sort((a, b) => a.start.toMillis() - b.start.toMillis());
 }
 
 /**

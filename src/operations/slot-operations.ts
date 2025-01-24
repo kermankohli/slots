@@ -32,8 +32,8 @@ export const removeSlots = (slotsToRemove: Slot | Slot[]): SlotOperator<Slot[]> 
     return {
       data: currentSlots.filter(currentSlot => 
         !toRemove.some(removeSlot => 
-          removeSlot.start.getTime() === currentSlot.start.getTime() &&
-          removeSlot.end.getTime() === currentSlot.end.getTime()
+          removeSlot.start.equals(currentSlot.start) &&
+          removeSlot.end.equals(currentSlot.end)
         )
       )
     };
@@ -44,18 +44,16 @@ export const removeSlots = (slotsToRemove: Slot | Slot[]): SlotOperator<Slot[]> 
  * Creates an operator that updates a slot in the collection
  */
 export const updateSlot = (oldSlot: Slot, newSlot: Slot): SlotOperator<Slot[]> => {
-  return (currentSlots: Slot[]): OperationResult<Slot[]> => {
+  return (slots: Slot[]): OperationResult<Slot[]> => {
     if (!isSlot(newSlot)) {
-      return { data: currentSlots, error: 'Invalid new slot format' };
+      return { data: slots, error: 'Invalid new slot format' };
     }
 
-    const slotsWithoutOld = currentSlots.filter(slot => 
-      slot.start.getTime() !== oldSlot.start.getTime() ||
-      slot.end.getTime() !== oldSlot.end.getTime()
-    );
+    // First remove the old slot
+    const withoutOld = removeSlots(oldSlot)(slots);
+    if (withoutOld.error) return withoutOld;
 
-    return {
-      data: mergeOverlappingSlots([...slotsWithoutOld, newSlot])
-    };
+    // Then add the new slot, which will handle merging with any overlapping slots
+    return addSlots(newSlot)(withoutOld.data);
   };
 }; 

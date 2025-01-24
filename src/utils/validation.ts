@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import { Slot } from '../types';
 
 /**
@@ -7,8 +8,8 @@ export function isSlot(value: any): value is Slot {
   return (
     value !== null &&
     typeof value === 'object' &&
-    value.start instanceof Date &&
-    value.end instanceof Date &&
+    value.start instanceof DateTime &&
+    value.end instanceof DateTime &&
     value.start <= value.end &&
     typeof value.metadata === 'object'
   );

@@ -1,9 +1,11 @@
+import { DateTime } from 'luxon';
+
 /**
  * Represents a time slot with start and end times
  */
 export interface Slot {
-  start: Date;
-  end: Date;
+  start: DateTime;
+  end: DateTime;
   metadata: Metadata;
 }
 

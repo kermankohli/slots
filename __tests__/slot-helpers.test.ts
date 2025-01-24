@@ -1,12 +1,13 @@
+import { DateTime, Duration } from 'luxon';
 import { doSlotsOverlap, mergeSlots, mergeOverlappingSlots, generateSlots } from '../src/utils/slot-helpers';
 import { Slot, MetadataMerger, defaultMetadataMerger } from '../src/types';
 
 describe('slot helpers', () => {
-  const baseDate = new Date('2024-01-01T10:00:00Z');
+  const baseDate = DateTime.fromISO('2024-01-01T10:00:00Z');
   
   const createSlot = (startHours: number, endHours: number, metadata: Record<string, any> = {}): Slot => ({
-    start: new Date(baseDate.getTime() + startHours * 3600000),
-    end: new Date(baseDate.getTime() + endHours * 3600000),
+    start: baseDate.plus({ hours: startHours }),
+    end: baseDate.plus({ hours: endHours }),
     metadata
   });
 
@@ -115,61 +116,61 @@ describe('slot helpers', () => {
   });
 
   describe('generateSlots', () => {
-    const hour = 3600000; // 1 hour in milliseconds
+    const hour = Duration.fromObject({ hours: 1 });
 
     it('should generate slots with given duration and overlap', () => {
-      const start = new Date('2024-01-01T10:00:00Z');
-      const end = new Date('2024-01-01T12:00:00Z');
-      const slots = generateSlots(start, end, hour, hour/2, { type: 'test' });
+      const start = DateTime.fromISO('2024-01-01T10:00:00Z');
+      const end = DateTime.fromISO('2024-01-01T12:00:00Z');
+      const slots = generateSlots(start, end, hour, Duration.fromObject({ minutes: 30 }), { type: 'test' });
 
       expect(slots).toHaveLength(3); // Three one-hour slots with 30-min overlap
       expect(slots[0]).toEqual({
-        start: new Date('2024-01-01T10:00:00Z'),
-        end: new Date('2024-01-01T11:00:00Z'),
+        start: DateTime.fromISO('2024-01-01T10:00:00Z'),
+        end: DateTime.fromISO('2024-01-01T11:00:00Z'),
         metadata: { type: 'test' }
       });
       expect(slots[1]).toEqual({
-        start: new Date('2024-01-01T10:30:00Z'),
-        end: new Date('2024-01-01T11:30:00Z'),
+        start: DateTime.fromISO('2024-01-01T10:30:00Z'),
+        end: DateTime.fromISO('2024-01-01T11:30:00Z'),
         metadata: { type: 'test' }
       });
       expect(slots[2]).toEqual({
-        start: new Date('2024-01-01T11:00:00Z'),
-        end: new Date('2024-01-01T12:00:00Z'),
+        start: DateTime.fromISO('2024-01-01T11:00:00Z'),
+        end: DateTime.fromISO('2024-01-01T12:00:00Z'),
         metadata: { type: 'test' }
       });
     });
 
     it('should return empty array if start date is after end date', () => {
-      const start = new Date('2024-01-01T12:00:00Z');
-      const end = new Date('2024-01-01T10:00:00Z');
+      const start = DateTime.fromISO('2024-01-01T12:00:00Z');
+      const end = DateTime.fromISO('2024-01-01T10:00:00Z');
       const slots = generateSlots(start, end, hour, hour);
       expect(slots).toEqual([]);
     });
 
     it('should return empty array if start date equals end date', () => {
-      const date = new Date('2024-01-01T10:00:00Z');
+      const date = DateTime.fromISO('2024-01-01T10:00:00Z');
       const slots = generateSlots(date, date, hour, hour);
       expect(slots).toEqual([]);
     });
 
     it('should throw error for non-positive duration', () => {
-      const start = new Date('2024-01-01T10:00:00Z');
-      const end = new Date('2024-01-01T12:00:00Z');
-      expect(() => generateSlots(start, end, 0, hour)).toThrow();
-      expect(() => generateSlots(start, end, -hour, hour)).toThrow();
+      const start = DateTime.fromISO('2024-01-01T10:00:00Z');
+      const end = DateTime.fromISO('2024-01-01T12:00:00Z');
+      expect(() => generateSlots(start, end, Duration.fromMillis(0), hour)).toThrow();
+      expect(() => generateSlots(start, end, Duration.fromMillis(-hour.toMillis()), hour)).toThrow();
     });
 
     it('should throw error for non-positive overlap interval', () => {
-      const start = new Date('2024-01-01T10:00:00Z');
-      const end = new Date('2024-01-01T12:00:00Z');
-      expect(() => generateSlots(start, end, hour, 0)).toThrow();
-      expect(() => generateSlots(start, end, hour, -hour)).toThrow();
+      const start = DateTime.fromISO('2024-01-01T10:00:00Z');
+      const end = DateTime.fromISO('2024-01-01T12:00:00Z');
+      expect(() => generateSlots(start, end, hour, Duration.fromMillis(0))).toThrow();
+      expect(() => generateSlots(start, end, hour, Duration.fromMillis(-hour.toMillis()))).toThrow();
     });
 
     it('should apply default empty metadata if not provided', () => {
-      const start = new Date('2024-01-01T10:00:00Z');
-      const end = new Date('2024-01-01T11:00:00Z');
+      const start = DateTime.fromISO('2024-01-01T10:00:00Z');
+      const end = DateTime.fromISO('2024-01-01T11:00:00Z');
       const slots = generateSlots(start, end, hour, hour);
       expect(slots[0].metadata).toEqual({});
     });
