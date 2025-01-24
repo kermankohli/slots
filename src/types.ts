@@ -11,8 +11,18 @@ export interface Slot {
  * Simple key-value metadata structure
  */
 export interface SlotMetadata {
-  [key: string]: string | number | boolean | null;
+  [key: string]: any;
 }
+
+/**
+ * Function type for custom metadata merging
+ */
+export type MetadataMerger = (meta1: SlotMetadata, meta2: SlotMetadata) => SlotMetadata;
+
+/**
+ * Strategy for determining if slots overlap
+ */
+export type OverlapStrategy = 'strict' | 'inclusive';
 
 /**
  * Generic operation result type
@@ -25,7 +35,42 @@ export type OperationResult<T> = {
 /**
  * Type for any function that operates on slots
  */
-export type SlotOperator<T> = (slots: Slot[]) => OperationResult<T>;
+export type SlotOperator<T> = (
+  slots: Slot[], 
+  metadataMerger?: MetadataMerger
+) => OperationResult<T>;
+
+/**
+ * Default metadata merge behavior - keep last values
+ */
+export const defaultMetadataMerger: MetadataMerger = (meta1, meta2) => ({
+  ...meta1,
+  ...meta2
+});
+
+/**
+ * Available metadata merge strategies
+ */
+export type MetadataStrategy = 'keep_first' | 'keep_last' | 'combine' | 'error' | 'custom';
+
+/**
+ * Configuration for a specific metadata key
+ */
+export interface MetadataKeyConfig {
+  strategy: MetadataStrategy;
+  merge?: (v1: any, v2: any) => any;
+}
+
+/**
+ * Configuration for metadata merging
+ */
+export interface MetadataMergeConfig {
+  defaultStrategy: MetadataStrategy;
+  customMerge?: (meta1: SlotMetadata, meta2: SlotMetadata) => SlotMetadata;
+  keyStrategies?: {
+    [key: string]: MetadataKeyConfig;
+  };
+}
 
 /**
  * Compose multiple slot operators into one
@@ -42,17 +87,25 @@ export function composeOperators<T>(...operators: SlotOperator<T>[]): SlotOperat
 }
 
 /**
- * Available operations that can be performed on slots
+ * Available set operations for slots
  */
-export type SlotOperation = 
-  | { type: 'ADD'; slots: Slot | Slot[] }
-  | { type: 'REMOVE'; slots: Slot | Slot[] }
-  | { type: 'UPDATE'; oldSlot: Slot; newSlot: Slot };
+export type SlotSetOperation = 
+  | 'union'               // Outer bounds of all overlapping slots
+  | 'intersection'        // Only the overlapping portions
+  | 'difference'          // Parts of first slot that don't overlap with second slot
+  | 'symmetric_difference'; // Parts that belong to only one slot
 
 /**
  * Result of a slot operation
  */
-export interface SlotOperationResult {
-  slots: Slot[];
-  error?: string;
+export type SlotOperationResult = 
+  | { type: 'empty' }
+  | { type: 'single'; slot: Slot }
+  | { type: 'multiple'; slots: Slot[] };
+
+/**
+ * Options for slot operations
+ */
+export interface SlotOperationOptions {
+  metadataMerger?: MetadataMerger;
 } 
