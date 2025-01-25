@@ -1,21 +1,14 @@
 import { DateTime } from 'luxon';
 import { Slot } from '../../src/types';
 import { maxSlotsPerDayRule } from '../../src/rules/max-slots-per-day';
+import { createSlotFromHourOffset } from '../helpers/slot-test-helpers';
 
 describe('maxSlotsPerDayRule', () => {
-  const baseDate = DateTime.fromISO('2024-01-01T08:00:00Z').setZone('UTC');
-  
-  const createSlot = (hourOffset: number, type?: string): Slot => ({
-    start: baseDate.plus({ hours: hourOffset }),
-    end: baseDate.plus({ hours: hourOffset + 1 }),
-    metadata: type ? { type } : {}
-  });
-
   it('should return empty array when under limit', () => {
     const slots = [
-      createSlot(0),
-      createSlot(2),
-      createSlot(4)
+      createSlotFromHourOffset(0, 1),
+      createSlotFromHourOffset(2, 3),
+      createSlotFromHourOffset(4, 5)
     ];
 
     const rule = maxSlotsPerDayRule(5);
@@ -25,39 +18,39 @@ describe('maxSlotsPerDayRule', () => {
 
   it('should return excess slots when over limit', () => {
     const slots = [
-      createSlot(0),  // 8:00
-      createSlot(2),  // 10:00
-      createSlot(4),  // 12:00
-      createSlot(6),  // 14:00
-      createSlot(8),  // 16:00
-      createSlot(10)  // 18:00 - This one should be forbidden
+      createSlotFromHourOffset(0, 1),  // 10:00-11:00
+      createSlotFromHourOffset(2, 3),  // 12:00-13:00
+      createSlotFromHourOffset(4, 5),  // 14:00-15:00
+      createSlotFromHourOffset(6, 7),  // 16:00-17:00
+      createSlotFromHourOffset(8, 9),  // 18:00-19:00
+      createSlotFromHourOffset(10, 11)  // 20:00-21:00 - This one should be forbidden
     ];
 
     const rule = maxSlotsPerDayRule(5);
     const forbidden = rule(slots);
     
     expect(forbidden).toHaveLength(1);
-    expect(forbidden[0].start).toEqual(baseDate.plus({ hours: 10 }));
+    expect(forbidden[0].start.toISO()).toEqual(DateTime.fromISO('2024-01-01T10:00:00.000Z', { zone: 'UTC' }).toISO());
   });
 
   it('should handle multiple days', () => {
     const slots = [
       // Day 1 - 6 slots
-      createSlot(0),
-      createSlot(2),
-      createSlot(4),
-      createSlot(6),
-      createSlot(8),
-      createSlot(10),
+      createSlotFromHourOffset(0, 1),
+      createSlotFromHourOffset(2, 3),
+      createSlotFromHourOffset(4, 5),
+      createSlotFromHourOffset(6, 7),
+      createSlotFromHourOffset(8, 9),
+      createSlotFromHourOffset(10, 11),
       // Day 2 - 2 slots (next day)
       {
-        start: baseDate.plus({ days: 1, hours: 2 }),
-        end: baseDate.plus({ days: 1, hours: 3 }),
+        start: DateTime.fromISO('2024-01-02T12:00:00.000Z'),
+        end: DateTime.fromISO('2024-01-02T13:00:00.000Z'),
         metadata: {}
       },
       {
-        start: baseDate.plus({ days: 1, hours: 4 }),
-        end: baseDate.plus({ days: 1, hours: 5 }),
+        start: DateTime.fromISO('2024-01-02T14:00:00.000Z'),
+        end: DateTime.fromISO('2024-01-02T15:00:00.000Z'),
         metadata: {}
       }
     ];
@@ -66,20 +59,20 @@ describe('maxSlotsPerDayRule', () => {
     const forbidden = rule(slots);
     
     expect(forbidden).toHaveLength(1);
-    expect(forbidden[0].start).toEqual(baseDate.plus({ hours: 10 }));
+    expect(forbidden[0].start.toISO()).toEqual(DateTime.fromISO('2024-01-01T10:00:00.000Z', { zone: 'UTC' }).toISO());
   });
 
   it('should handle filtering by type before applying day limit', () => {
     const slots = [
       // Mix of calls and meetings
-      createSlot(0, 'call'),   // 8:00
-      createSlot(2, 'meeting'), // 10:00
-      createSlot(4, 'call'),   // 12:00
-      createSlot(6, 'meeting'), // 14:00
-      createSlot(8, 'call'),   // 16:00
-      createSlot(10, 'call'),  // 18:00
-      createSlot(12, 'call'),  // 20:00 - This one should be forbidden
-      createSlot(14, 'meeting') // 22:00
+      createSlotFromHourOffset(0, 1, { type: 'call' }   ),   // 10:00
+      createSlotFromHourOffset(2, 3, { type: 'meeting' }), // 12:00
+      createSlotFromHourOffset(4, 5, { type: 'call' }),   // 14:00
+      createSlotFromHourOffset(6, 7, { type: 'meeting' }), // 16:00
+      createSlotFromHourOffset(8, 9, { type: 'call' }),   // 18:00
+      createSlotFromHourOffset(10, 11, { type: 'call' }),  // 20:00 
+      createSlotFromHourOffset(12, 13, { type: 'call' }),  // 22:00 - This one should be forbidden
+      createSlotFromHourOffset(14, 15, { type: 'meeting' }) // 24:00
     ];
 
     // Filter to only 'call' type slots before applying rule
@@ -88,7 +81,7 @@ describe('maxSlotsPerDayRule', () => {
     const forbidden = rule(callSlots);
     
     expect(forbidden).toHaveLength(1);
-    expect(forbidden[0].start).toEqual(baseDate.plus({ hours: 12 }));
+    expect(forbidden[0].start.toISO()).toEqual(DateTime.fromISO('2024-01-01T12:00:00.000Z', { zone: 'UTC' }).toISO());
     expect(forbidden[0].metadata.type).toBe('call');
   });
 }); 

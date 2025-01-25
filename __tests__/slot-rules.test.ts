@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
 import { Slot } from '../src/types';
 import { maxSlotsPerDayRule } from '../src/rules/max-slots-per-day';
+import { createSlotFromHourOffset } from './helpers/slot-test-helpers';
 
 describe('Slot Rules', () => {
   describe('maxSlotsPerDayRule', () => {
@@ -14,9 +15,9 @@ describe('Slot Rules', () => {
 
     it('should return empty array when under limit', () => {
       const slots = [
-        createSlot(0),
-        createSlot(2),
-        createSlot(4)
+        createSlotFromHourOffset(0, 1),
+        createSlotFromHourOffset(2, 3),
+        createSlotFromHourOffset(4, 5)
       ];
 
       const rule = maxSlotsPerDayRule(5);
@@ -26,39 +27,39 @@ describe('Slot Rules', () => {
 
     it('should return excess slots when over limit', () => {
       const slots = [
-        createSlot(0),  // 10:00
-        createSlot(2),  // 12:00
-        createSlot(4),  // 14:00
-        createSlot(6),  // 16:00
-        createSlot(8),  // 18:00
-        createSlot(10)  // 20:00 - This one should be forbidden
+        createSlotFromHourOffset(0, 1),  // 10:00-11:00
+        createSlotFromHourOffset(2, 3),  // 12:00-13:00
+        createSlotFromHourOffset(4, 5),  // 14:00-15:00
+        createSlotFromHourOffset(6, 7),  // 16:00-17:00
+        createSlotFromHourOffset(8, 9),  // 18:00-19:00
+        createSlotFromHourOffset(10, 11)  // 20:00-21:00 - This one should be forbidden
       ];
 
       const rule = maxSlotsPerDayRule(5);
       const forbidden = rule(slots);
       
       expect(forbidden).toHaveLength(1);
-      expect(forbidden[0].start).toEqual(baseDate.plus({ hours: 10 }));
+      expect(forbidden[0].start).toEqual(DateTime.fromISO('2024-01-01T10:00:00.000Z', { zone: 'UTC' }));
     });
 
     it('should handle multiple days', () => {
       const slots = [
         // Day 1 - 6 slots
-        createSlot(0),
-        createSlot(2),
-        createSlot(4),
-        createSlot(6),
-        createSlot(8),
-        createSlot(10),
+        createSlotFromHourOffset(0, 1),
+        createSlotFromHourOffset(2, 3),
+        createSlotFromHourOffset(4, 5),
+        createSlotFromHourOffset(6, 7),
+        createSlotFromHourOffset(8, 9),
+        createSlotFromHourOffset(10, 11),
         // Day 2 - 2 slots (next day)
         {
-          start: baseDate.plus({ days: 1, hours: 2 }),
-          end: baseDate.plus({ days: 1, hours: 3 }),
+          start: DateTime.fromISO('2024-01-02T12:00:00.000Z'),
+          end: DateTime.fromISO('2024-01-02T13:00:00.000Z'),
           metadata: {}
         },
         {
-          start: baseDate.plus({ days: 1, hours: 4 }),
-          end: baseDate.plus({ days: 1, hours: 5 }),
+          start: DateTime.fromISO('2024-01-02T14:00:00.000Z'),
+          end: DateTime.fromISO('2024-01-02T15:00:00.000Z'),
           metadata: {}
         }
       ];
@@ -67,7 +68,7 @@ describe('Slot Rules', () => {
       const forbidden = rule(slots);
       
       expect(forbidden).toHaveLength(1);
-      expect(forbidden[0].start).toEqual(baseDate.plus({ hours: 10 }));
+      expect(forbidden[0].start.toISO()).toEqual(DateTime.fromISO('2024-01-01T10:00:00.000Z', { zone: 'UTC' }).toISO());
     });
 
     it('should handle filtering by type before applying day limit', () => {

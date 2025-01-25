@@ -6,6 +6,7 @@ import {
   differenceSlots,
   symmetricDifferenceSlots,
 } from '../src/utils/slot-set-operations';
+import { createSlotFromISO } from './helpers/slot-test-helpers';
 
 describe('slot array operations', () => {
   const defaultOptions = {
@@ -13,21 +14,15 @@ describe('slot array operations', () => {
     edgeStrategy: 'inclusive' as const
   };
 
-  const createSlot = (start: string, end: string, metadata = {}): Slot => ({
-    start: DateTime.fromISO(start),
-    end: DateTime.fromISO(end),
-    metadata
-  });
-
   describe('intersectSlots with arrays', () => {
     it('should return empty array when no slots overlap', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z'),
-        createSlot('2024-03-18T12:00:00.000Z', '2024-03-18T13:00:00.000Z')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z'),
+        createSlotFromISO('2024-03-18T12:00:00.000Z', '2024-03-18T13:00:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T11:00:00.000Z', '2024-03-18T12:00:00.000Z'),
-        createSlot('2024-03-18T13:00:00.000Z', '2024-03-18T14:00:00.000Z')
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T12:00:00.000Z'),
+        createSlotFromISO('2024-03-18T13:00:00.000Z', '2024-03-18T14:00:00.000Z')
       ];
 
       const result = intersectSlots(slotsA, slotsB, {...defaultOptions, edgeStrategy: 'exclusive'});
@@ -36,10 +31,10 @@ describe('slot array operations', () => {
 
     it('should find overlapping portions of slots', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00.000Z', '2024-03-18T12:00:00.000Z')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T12:00:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T11:00:00.000Z', '2024-03-18T13:00:00.000Z')
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T13:00:00.000Z')
       ];
 
       const result = intersectSlots(slotsA, slotsB, defaultOptions);
@@ -50,11 +45,11 @@ describe('slot array operations', () => {
 
     it('should merge overlapping intersections', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00', '2024-03-18T12:00:00'),
-        createSlot('2024-03-18T11:30:00', '2024-03-18T13:30:00')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T12:00:00.000Z'),
+        createSlotFromISO('2024-03-18T11:30:00.000Z', '2024-03-18T13:30:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T11:00:00', '2024-03-18T13:00:00')
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T13:00:00.000Z')
       ];
 
       const result = intersectSlots(slotsA, slotsB, defaultOptions);
@@ -67,10 +62,10 @@ describe('slot array operations', () => {
   describe('unionSlots with arrays', () => {
     it('should merge overlapping slots from both arrays', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00', '2024-03-18T12:00:00')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T12:00:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T11:00:00', '2024-03-18T13:00:00')
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T13:00:00.000Z')
       ];
 
       const result = unionSlots(slotsA, slotsB, defaultOptions);
@@ -81,10 +76,10 @@ describe('slot array operations', () => {
 
     it('should keep non-overlapping slots separate', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00', '2024-03-18T11:00:00')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T12:00:00', '2024-03-18T13:00:00')
+        createSlotFromISO('2024-03-18T12:00:00.000Z', '2024-03-18T13:00:00.000Z')
       ];
 
       const result = unionSlots(slotsA, slotsB, defaultOptions);
@@ -97,7 +92,7 @@ describe('slot array operations', () => {
   describe('differenceSlots with arrays', () => {
     it('should return all slots from A when B is empty', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00', '2024-03-18T11:00:00')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z')
       ];
       const slotsB: Slot[] = [];
 
@@ -108,10 +103,10 @@ describe('slot array operations', () => {
 
     it('should return portions of A not overlapped by B', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00', '2024-03-18T13:00:00')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T13:00:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T11:00:00', '2024-03-18T12:00:00')
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T12:00:00.000Z')
       ];
 
       const result = differenceSlots(slotsA, slotsB, defaultOptions);
@@ -126,10 +121,10 @@ describe('slot array operations', () => {
   describe('symmetricDifferenceSlots with arrays', () => {
     it('should return portions unique to each array', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00', '2024-03-18T12:00:00')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T12:00:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T11:00:00', '2024-03-18T13:00:00')
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T13:00:00.000Z')
       ];
 
       const result = symmetricDifferenceSlots(slotsA, slotsB, defaultOptions);
@@ -142,11 +137,11 @@ describe('slot array operations', () => {
 
     it('should handle multiple overlapping slots', () => {
       const slotsA = [
-        createSlot('2024-03-18T10:00:00', '2024-03-18T12:00:00'),
-        createSlot('2024-03-18T14:00:00', '2024-03-18T16:00:00')
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T12:00:00.000Z'),
+        createSlotFromISO('2024-03-18T14:00:00.000Z', '2024-03-18T16:00:00.000Z')
       ];
       const slotsB = [
-        createSlot('2024-03-18T11:00:00', '2024-03-18T15:00:00')
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T15:00:00.000Z')
       ];
 
       const result = symmetricDifferenceSlots(slotsA, slotsB, defaultOptions);

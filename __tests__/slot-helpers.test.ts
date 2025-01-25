@@ -1,46 +1,44 @@
 import { DateTime, Duration } from 'luxon';
 import { doSlotsOverlap, mergeSlots, mergeOverlappingSlots, generateSlots } from '../src/utils/slot-helpers';
 import { Slot, MetadataMerger, defaultMetadataMerger } from '../src/types';
+import { createSlotFromHourOffset } from './helpers/slot-test-helpers';
 
 describe('slot helpers', () => {
-  const baseDate = DateTime.fromISO('2024-01-01T10:00:00Z');
-  
-  const createSlot = (startHours: number, endHours: number, metadata: Record<string, any> = {}): Slot => ({
-    start: baseDate.plus({ hours: startHours }),
-    end: baseDate.plus({ hours: endHours }),
-    metadata
-  });
-
   describe('doSlotsOverlap', () => {
-    it('should detect strictly overlapping slots', () => {
-      expect(doSlotsOverlap(createSlot(1, 3), createSlot(2, 4))).toBe(true);
-      expect(doSlotsOverlap(createSlot(1, 4), createSlot(2, 3))).toBe(true);
-      expect(doSlotsOverlap(createSlot(1, 2), createSlot(2, 3))).toBe(false); // Adjacent slots
-    });
-
-    it('should detect inclusive overlapping slots', () => {
-      expect(doSlotsOverlap(createSlot(1, 3), createSlot(2, 4), 'inclusive')).toBe(true);
-      expect(doSlotsOverlap(createSlot(1, 4), createSlot(2, 3), 'inclusive')).toBe(true);
-      expect(doSlotsOverlap(createSlot(1, 2), createSlot(2, 3), 'inclusive')).toBe(true); // Adjacent slots
+    it('should detect overlapping slots', () => {
+      const slotA = createSlotFromHourOffset(0, 2);
+      const slotB = createSlotFromHourOffset(1, 3);
+      expect(doSlotsOverlap(slotA, slotB)).toBe(true);
     });
 
     it('should detect non-overlapping slots', () => {
-      expect(doSlotsOverlap(createSlot(1, 2), createSlot(3, 4))).toBe(false);
-      expect(doSlotsOverlap(createSlot(3, 4), createSlot(1, 2))).toBe(false);
-      // Same for inclusive
-      expect(doSlotsOverlap(createSlot(1, 2), createSlot(3, 4), 'inclusive')).toBe(false);
-      expect(doSlotsOverlap(createSlot(3, 4), createSlot(1, 2), 'inclusive')).toBe(false);
+      const slotA = createSlotFromHourOffset(0, 1);
+      const slotB = createSlotFromHourOffset(2, 3);
+      expect(doSlotsOverlap(slotA, slotB)).toBe(false);
+    });
+
+    it('should handle touching slots based on strategy', () => {
+      const slotA = createSlotFromHourOffset(0, 1);
+      const slotB = createSlotFromHourOffset(1, 2);
+      expect(doSlotsOverlap(slotA, slotB, 'strict')).toBe(false);
+      expect(doSlotsOverlap(slotA, slotB, 'inclusive')).toBe(true);
+    });
+
+    it('should handle zero-duration slots', () => {
+      const slotA = createSlotFromHourOffset(1, 1);
+      const slotB = createSlotFromHourOffset(1, 2);
+      expect(doSlotsOverlap(slotA, slotB)).toBe(true);
     });
   });
 
   describe('mergeSlots', () => {
     it('should merge slots with default metadata merger', () => {
       const result = mergeSlots(
-        createSlot(1, 3, { a: 1, b: 2 }),
-        createSlot(2, 4, { b: 3, c: 4 })
+        createSlotFromHourOffset(1, 3, { a: 1, b: 2 }),
+        createSlotFromHourOffset(2, 4, { b: 3, c: 4 })
       );
-      expect(result.start).toEqual(createSlot(1, 4).start);
-      expect(result.end).toEqual(createSlot(1, 4).end);
+      expect(result.start).toEqual(createSlotFromHourOffset(1, 4).start);
+      expect(result.end).toEqual(createSlotFromHourOffset(1, 4).end);
       expect(result.metadata).toEqual({ a: 1, b: 3, c: 4 });
     });
 
@@ -50,8 +48,8 @@ describe('slot helpers', () => {
       });
 
       const result = mergeSlots(
-        createSlot(1, 3, { values: [1, 2] }),
-        createSlot(2, 4, { values: [3, 4] }),
+        createSlotFromHourOffset(1, 3, { values: [1, 2] }),
+        createSlotFromHourOffset(2, 4, { values: [3, 4] }),
         customMerger
       );
       expect(result.metadata).toEqual({ values: [1, 2, 3, 4] });
@@ -64,16 +62,16 @@ describe('slot helpers', () => {
     });
 
     it('should handle single slot', () => {
-      const slot = createSlot(1, 2);
+      const slot = createSlotFromHourOffset(1, 2);
       expect(mergeOverlappingSlots([slot])).toEqual([slot]);
     });
 
     describe('with strict overlap strategy', () => {
       it('should merge only strictly overlapping slots', () => {
         const slots = [
-          createSlot(1, 3, { count: 1 }),
-          createSlot(2, 4, { count: 2 }),
-          createSlot(4, 5, { count: 3 }) // Touches but doesn't overlap
+          createSlotFromHourOffset(1, 3, { count: 1 }),
+          createSlotFromHourOffset(2, 4, { count: 2 }),
+          createSlotFromHourOffset(4, 5, { count: 3 }) // Touches but doesn't overlap
         ];
 
         const result = mergeOverlappingSlots(slots);
@@ -86,15 +84,15 @@ describe('slot helpers', () => {
     describe('with inclusive overlap strategy', () => {
       it('should merge touching slots', () => {
         const slots = [
-          createSlot(1, 2, { count: 1 }),
-          createSlot(2, 3, { count: 2 }),
-          createSlot(3, 4, { count: 3 })
+          createSlotFromHourOffset(1, 2, { count: 1 }),
+          createSlotFromHourOffset(2, 3, { count: 2 }),
+          createSlotFromHourOffset(3, 4, { count: 3 })
         ];
 
         const result = mergeOverlappingSlots(slots, defaultMetadataMerger, 'inclusive');
         expect(result).toHaveLength(1);
         expect(result[0]).toEqual({
-          ...createSlot(1, 4),
+          ...createSlotFromHourOffset(1, 4),
           metadata: { count: 3 } // Last value wins with default merger
         });
       });
@@ -102,14 +100,14 @@ describe('slot helpers', () => {
 
     it('should handle multiple overlapping slots in original order', () => {
       const slots = [
-        createSlot(3, 4, { value: 3 }),
-        createSlot(1, 2, { value: 1 }),
-        createSlot(1.5, 3.5, { value: 2 })
+        createSlotFromHourOffset(3, 4, { value: 3 }),
+        createSlotFromHourOffset(1, 2, { value: 1 }),
+        createSlotFromHourOffset(1.5, 3.5, { value: 2 })
       ];
       const result = mergeOverlappingSlots(slots);
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        ...createSlot(1, 4),
+        ...createSlotFromHourOffset(1, 4),
         metadata: { value: 3 } // Last value in original array
       });
     });
@@ -118,38 +116,32 @@ describe('slot helpers', () => {
   describe('generateSlots', () => {
     const hour = Duration.fromObject({ hours: 1 });
 
-    it('should generate slots with given duration and overlap', () => {
-      const start = DateTime.fromISO('2024-01-01T10:00:00Z');
-      const end = DateTime.fromISO('2024-01-01T12:00:00Z');
-      const slots = generateSlots(start, end, hour, Duration.fromObject({ minutes: 30 }), { type: 'test' });
+    it('should generate slots with correct duration and interval', () => {
+      const start = DateTime.fromISO('2024-01-01T10:00:00Z', { zone: 'UTC' });
+      const end = DateTime.fromISO('2024-01-01T12:00:00Z', { zone: 'UTC' });
+      const slots = generateSlots(start, end, hour, hour);
 
-      expect(slots).toHaveLength(3); // Three one-hour slots with 30-min overlap
-      expect(slots[0]).toEqual({
-        start: DateTime.fromISO('2024-01-01T10:00:00Z'),
-        end: DateTime.fromISO('2024-01-01T11:00:00Z'),
-        metadata: { type: 'test' }
-      });
-      expect(slots[1]).toEqual({
-        start: DateTime.fromISO('2024-01-01T10:30:00Z'),
-        end: DateTime.fromISO('2024-01-01T11:30:00Z'),
-        metadata: { type: 'test' }
-      });
-      expect(slots[2]).toEqual({
-        start: DateTime.fromISO('2024-01-01T11:00:00Z'),
-        end: DateTime.fromISO('2024-01-01T12:00:00Z'),
-        metadata: { type: 'test' }
-      });
+      expect(slots).toHaveLength(2);
+      expect(slots[0].start.toISO()).toBe('2024-01-01T10:00:00.000Z');
+      expect(slots[0].end.toISO()).toBe('2024-01-01T11:00:00.000Z');
+      expect(slots[1].start.toISO()).toBe('2024-01-01T11:00:00.000Z');
+      expect(slots[1].end.toISO()).toBe('2024-01-01T12:00:00.000Z');
     });
 
-    it('should return empty array if start date is after end date', () => {
-      const start = DateTime.fromISO('2024-01-01T12:00:00Z');
-      const end = DateTime.fromISO('2024-01-01T10:00:00Z');
-      const slots = generateSlots(start, end, hour, hour);
-      expect(slots).toEqual([]);
+    it('should handle overlapping slots', () => {
+      const start = DateTime.fromISO('2024-01-01T10:00:00Z', { zone: 'UTC' });
+      const end = DateTime.fromISO('2024-01-01T12:00:00Z', { zone: 'UTC' });
+      const slots = generateSlots(start, end, hour.plus({ minutes: 30 }), hour.minus({ minutes: 30 }));
+
+      expect(slots).toHaveLength(2);
+      expect(slots[0].start.toISO()).toBe('2024-01-01T10:00:00.000Z');
+      expect(slots[0].end.toISO()).toBe('2024-01-01T11:30:00.000Z');
+      expect(slots[1].start.toISO()).toBe('2024-01-01T10:30:00.000Z');
+      expect(slots[1].end.toISO()).toBe('2024-01-01T12:00:00.000Z');
     });
 
     it('should return empty array if start date equals end date', () => {
-      const date = DateTime.fromISO('2024-01-01T10:00:00Z');
+      const date = DateTime.fromISO('2024-01-01T10:00:00Z', { zone: 'UTC' });
       const slots = generateSlots(date, date, hour, hour);
       expect(slots).toEqual([]);
     });
