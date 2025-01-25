@@ -6,10 +6,10 @@ describe('Slot Rules', () => {
   describe('maxSlotsPerDayRule', () => {
     const baseDate = DateTime.fromISO('2024-01-01T08:00:00Z').setZone('UTC');
     
-    const createSlot = (hourOffset: number): Slot => ({
+    const createSlot = (hourOffset: number, type?: string): Slot => ({
       start: baseDate.plus({ hours: hourOffset }),
       end: baseDate.plus({ hours: hourOffset + 1 }),
-      metadata: {}
+      metadata: type ? { type } : {}
     });
 
     it('should return empty array when under limit', () => {
@@ -68,6 +68,29 @@ describe('Slot Rules', () => {
       
       expect(forbidden).toHaveLength(1);
       expect(forbidden[0].start).toEqual(baseDate.plus({ hours: 10 }));
+    });
+
+    it('should handle filtering by type before applying day limit', () => {
+      const slots = [
+        // Mix of calls and meetings
+        createSlot(0, 'call'),   // 8:00
+        createSlot(2, 'meeting'), // 10:00
+        createSlot(4, 'call'),   // 12:00
+        createSlot(6, 'meeting'), // 14:00
+        createSlot(8, 'call'),   // 16:00
+        createSlot(10, 'call'),  // 18:00
+        createSlot(12, 'call'),  // 20:00 - This one should be forbidden
+        createSlot(14, 'meeting') // 22:00
+      ];
+
+      // Filter to only 'call' type slots before applying rule
+      const callSlots = slots.filter(slot => slot.metadata?.type === 'call');
+      const rule = maxSlotsPerDayRule(4); // Max 4 calls per day
+      const forbidden = rule(callSlots);
+      
+      expect(forbidden).toHaveLength(1);
+      expect(forbidden[0].start).toEqual(baseDate.plus({ hours: 12 }));
+      expect(forbidden[0].metadata.type).toBe('call');
     });
   });
 }); 
