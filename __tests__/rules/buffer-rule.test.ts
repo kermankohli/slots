@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { createBufferRule } from '../../src/rules/buffer-rule';
+import { createBufferRule } from '../../src/rules';
 import { Slot } from '../../src/types';
 
 describe('Buffer Rule', () => {

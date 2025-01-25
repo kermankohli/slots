@@ -63,4 +63,4 @@ export const createBufferRule = (
 //   slot => slot.metadata?.type === 'meeting',
 //   30,  // 30 minutes before
 //   30   // 30 minutes after
-// ); 
+// );
