@@ -3,7 +3,7 @@ import { addSlots, removeSlots, updateSlot } from '../src';
 import { Slot, composeOperators } from '../src/types';
 
 describe('slot operations', () => {
-  const baseDate = DateTime.fromISO('2024-01-01T10:00:00Z');
+  const baseDate = DateTime.fromISO('2024-01-01T10:00:00.000Z');
   
   const createSlot = (startHours: number, endHours: number, metadata: Record<string, any> = {}): Slot => ({
     start: baseDate.plus({ hours: startHours }),

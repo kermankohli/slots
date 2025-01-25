@@ -5,6 +5,14 @@ import { Slot, MetadataMerger, defaultMetadataMerger, OverlapStrategy } from '..
  * Checks if two slots overlap based on the specified strategy
  */
 export function doSlotsOverlap(a: Slot, b: Slot, strategy: OverlapStrategy = 'strict'): boolean {
+  // Special case: if either slot has zero duration, check if it touches the other slot
+  if (a.start.equals(a.end) || b.start.equals(b.end)) {
+    return a.start.equals(b.start) || 
+           a.start.equals(b.end) || 
+           a.end.equals(b.start) ||
+           a.end.equals(b.end);
+  }
+
   const interval1 = Interval.fromDateTimes(a.start, a.end);
   const interval2 = Interval.fromDateTimes(b.start, b.end);
   
