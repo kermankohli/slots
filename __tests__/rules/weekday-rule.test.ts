@@ -1,18 +1,18 @@
 import { DateTime } from 'luxon';
-import { allowWeekdaysRule, forbidWeekdaysRule } from '../../src/rules/weekday-rule';
+import { keepWeekdaysRule, removeWeekdaysRule } from '../../src/rules/weekday-rule';
 import { Slot } from '../../src/types';
 import { removeSlots } from '../../src/operations/slot-operations';
 import { createSlotFromISO, createSlotWithZone } from '../helpers/slot-test-helpers';
 
 describe('weekday rules', () => {
-  describe('allowWeekdaysRule', () => {
+  describe('keepWeekdaysRule', () => {
     it('should allow all slots when no weekdays are specified', () => {
       const slots = [
         createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z'), // Monday
         createSlotFromISO('2024-03-19T10:00:00.000Z', '2024-03-19T11:00:00.000Z'), // Tuesday
       ];
   
-      const rule = allowWeekdaysRule();
+      const rule = keepWeekdaysRule();
       const forbiddenSlots = rule(slots);
   
       expect(forbiddenSlots).toHaveLength(0);
@@ -25,7 +25,7 @@ describe('weekday rules', () => {
         createSlotFromISO('2024-03-20T10:00:00.000Z', '2024-03-20T11:00:00.000Z'), // Wednesday (3)
       ];
   
-      const rule = allowWeekdaysRule([1, 3]); // Allow Monday and Wednesday
+      const rule = keepWeekdaysRule([1, 3]); // Keep Monday and Wednesday
       const forbiddenSlots = rule(slots);
   
       expect(forbiddenSlots).toHaveLength(1);
@@ -35,20 +35,20 @@ describe('weekday rules', () => {
     it('should allow slots on specified weekdays', () => {
       // Monday
       const slot = createSlotWithZone('2024-03-18T10:00:00', 'UTC');
-      const rule = allowWeekdaysRule([1]); // Monday
+      const rule = keepWeekdaysRule([1]); // Monday
       const forbidden = rule([slot]);
       expect(forbidden).toHaveLength(0);
     });
   });
 
-  describe('forbidWeekdaysRule', () => {
+  describe('removeWeekdaysRule', () => {
     it('should allow all slots when no weekdays are forbidden', () => {
       const slots = [
         createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z'), // Monday
         createSlotFromISO('2024-03-19T10:00:00.000Z', '2024-03-19T11:00:00.000Z'), // Tuesday
       ];
   
-      const rule = forbidWeekdaysRule();
+      const rule = removeWeekdaysRule();
       const forbiddenSlots = rule(slots);
   
       expect(forbiddenSlots).toHaveLength(0);
@@ -61,7 +61,7 @@ describe('weekday rules', () => {
         createSlotFromISO('2024-03-24T10:00:00.000Z', '2024-03-24T11:00:00.000Z'), // Sunday (7)
       ];
   
-      const rule = forbidWeekdaysRule([6, 7]); // Forbid weekends
+      const rule = removeWeekdaysRule([6, 7]); // Forbid weekends
       const forbiddenSlots = rule(slots);
   
       expect(forbiddenSlots).toHaveLength(2);
@@ -78,7 +78,7 @@ describe('weekday rules', () => {
         createSlotFromISO('2024-03-22T10:00:00.000Z', '2024-03-22T11:00:00.000Z'), // Friday (5)
       ];
 
-      const rule = forbidWeekdaysRule([2, 4]); // Forbid Tuesday and Thursday
+      const rule = removeWeekdaysRule([2, 4]); // Forbid Tuesday and Thursday
       const forbiddenSlots = rule(slots);
       const remainingSlots = removeSlots(forbiddenSlots)(slots).data;
 
@@ -100,7 +100,7 @@ describe('weekday rules', () => {
       const slots = [mondaySlot, tuesdayUtcSlot];
       
       // Only allow Mondays
-      const rule = allowWeekdaysRule([1]);
+      const rule = keepWeekdaysRule([1]);
       const forbiddenSlots = rule(slots);
 
       // In UTC: first slot is Monday (allowed), second is Tuesday (forbidden)
@@ -117,7 +117,7 @@ describe('weekday rules', () => {
       const slots = [tokyoSlot, laSlot];
       
       // Forbid Sundays
-      const rule = forbidWeekdaysRule([7]);
+      const rule = removeWeekdaysRule([7]);
       const forbiddenSlots = rule(slots);
 
       // Both slots should be forbidden as they're both on Sunday in their respective zones
@@ -132,7 +132,7 @@ describe('weekday rules', () => {
       const slots = [beforeDst, afterDst];
       
       // Forbid Sundays
-      const rule = forbidWeekdaysRule([7]);
+      const rule = removeWeekdaysRule([7]);
       const forbiddenSlots = rule(slots);
 
       // Both slots should be forbidden as they're both on Sunday
@@ -158,12 +158,12 @@ describe('weekday rules', () => {
       ];
 
       // Allow only Mon-Wed for set A
-      const ruleA = allowWeekdaysRule([1, 2, 3]);
+      const ruleA = keepWeekdaysRule([1, 2, 3]);
       const forbiddenSlotsA = ruleA(slotsSetA);
       const remainingSlotsA = removeSlots(forbiddenSlotsA)(slotsSetA).data;
 
       // Allow only Wed-Fri for set B
-      const ruleB = allowWeekdaysRule([3, 4, 5]);
+      const ruleB = keepWeekdaysRule([3, 4, 5]);
       const forbiddenSlotsB = ruleB(slotsSetB);
       const remainingSlotsB = removeSlots(forbiddenSlotsB)(slotsSetB).data;
 

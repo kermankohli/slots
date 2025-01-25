@@ -2,39 +2,46 @@ import { Slot } from '../types';
 import { SlotRule } from '../types';
 
 /**
- * Base weekday rule that handles both allowing and forbidding weekdays
+ * Base weekday rule that handles both keeping and removing weekdays
  * @param weekdays - Array of weekday numbers (1-7, where 1 is Monday and 7 is Sunday)
- * @param isAllowList - If true, weekdays array is treated as allowed days. If false, as forbidden days.
- * @returns A rule that returns slots that should be forbidden
+ * @param shouldKeep - If true, keep slots on specified weekdays. If false, remove them.
+ * @returns A rule that returns slots that should be removed
  */
-const createWeekdayRule = (weekdays: number[], isAllowList: boolean): SlotRule => (slots) => {
-  // If no weekdays specified, allow all slots
+const createWeekdayRule = (weekdays: number[], shouldKeep: boolean): SlotRule => (slots) => {
+  // If no weekdays specified, keep all slots
   if (weekdays.length === 0) {
     return [];
   }
 
   return slots.filter(slot => {
     const weekday = slot.start.weekday;
-    // For allow list: return slots NOT in weekdays
-    // For forbid list: return slots IN weekdays
-    return isAllowList ? !weekdays.includes(weekday) : weekdays.includes(weekday);
+    // For keep: return slots NOT in weekdays (to be removed)
+    // For remove: return slots IN weekdays (to be removed)
+    return shouldKeep ? !weekdays.includes(weekday) : weekdays.includes(weekday);
   });
 };
 
 /**
- * Creates a rule that only allows specified weekdays
- * @param allowedWeekdays - Array of allowed weekday numbers (1-7, where 1 is Monday and 7 is Sunday)
- * If empty, all weekdays are allowed
- * @returns A rule that returns slots that fall on forbidden weekdays
+ * Creates a rule that keeps only slots on specified weekdays
+ * @param weekdays - Array of weekday numbers to keep (1-7, where 1 is Monday and 7 is Sunday)
+ * If empty, all weekdays are kept
+ * @returns A rule that returns slots that should be removed (those not on specified weekdays)
  */
-export const allowWeekdaysRule = (allowedWeekdays: number[] = []): SlotRule => 
-  createWeekdayRule(allowedWeekdays, true);
+export const keepWeekdaysRule = (weekdays: number[] = []): SlotRule => 
+  createWeekdayRule(weekdays, true);
 
 /**
- * Creates a rule that forbids specified weekdays
- * @param forbiddenWeekdays - Array of weekday numbers to forbid (1-7, where 1 is Monday and 7 is Sunday)
- * If empty, no weekdays are forbidden
- * @returns A rule that returns slots that fall on forbidden weekdays
+ * Creates a rule that removes slots on specified weekdays
+ * @param weekdays - Array of weekday numbers to remove (1-7, where 1 is Monday and 7 is Sunday)
+ * If empty, no weekdays are removed
+ * @returns A rule that returns slots that should be removed (those on specified weekdays)
  */
-export const forbidWeekdaysRule = (forbiddenWeekdays: number[] = []): SlotRule =>
-  createWeekdayRule(forbiddenWeekdays, false); 
+export const removeWeekdaysRule = (weekdays: number[] = []): SlotRule =>
+  createWeekdayRule(weekdays, false);
+
+// Convenience functions for common use cases
+export const keepWeekdaysOnlyRule = (weekdays: number[] = []): SlotRule =>
+  keepWeekdaysRule(weekdays);
+
+export const removeWeekendsRule = (): SlotRule =>
+  removeWeekdaysRule([6, 7]);

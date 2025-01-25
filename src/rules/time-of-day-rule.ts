@@ -50,6 +50,20 @@ export const createTimeOfDayRule = (start: TimeOfDay, end: TimeOfDay): SlotRule 
   });
 };
 
+/**
+ * Creates a rule that allows slots within the specified hours of the day
+ * @param start - Start time of day (e.g., { hour: 9, minute: 30 } for 9:30 AM)
+ * @param end - End time of day (e.g., { hour: 17 } for 5:00 PM)
+ * @returns A rule that returns slots that fall outside the specified time range
+ */
+export const allowTimeOfDayRule = (start: TimeOfDay, end: TimeOfDay): SlotRule => (slots) => {
+  const blockedSlots = createTimeOfDayRule({ hour: 0 }, start)(slots)
+    .concat(createTimeOfDayRule(end, { hour: 24 })(slots));
+  return slots.filter(slot => !blockedSlots.some(blocked => 
+    blocked.start.equals(slot.start) && blocked.end.equals(slot.end)
+  ));
+};
+
 // Convenience functions for common use cases
 export const noMeetingsBeforeRule = (hour: number, minute: number = 0): SlotRule =>
   createTimeOfDayRule({ hour: 0 }, { hour, minute });
@@ -64,6 +78,17 @@ export const blockTimeRangeRule = (
   endMinute: number = 0
 ): SlotRule =>
   createTimeOfDayRule(
+    { hour: startHour, minute: startMinute },
+    { hour: endHour, minute: endMinute }
+  );
+
+export const allowTimeRangeRule = (
+  startHour: number,
+  endHour: number,
+  startMinute: number = 0,
+  endMinute: number = 0
+): SlotRule =>
+  allowTimeOfDayRule(
     { hour: startHour, minute: startMinute },
     { hour: endHour, minute: endMinute }
   ); 
