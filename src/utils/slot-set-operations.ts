@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { Slot, SlotOperationResult, SlotOperationOptions, MetadataMerger, EdgeStrategy } from '../types';
+import { Slot, SlotOperationOptions, EdgeStrategy, SlotOperationResult } from '../types';
 
 /**
  * Checks if two slots overlap based on edge strategy

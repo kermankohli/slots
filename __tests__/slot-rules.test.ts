@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import { Slot } from '../src/types';
-import { maxSlotsPerDayRule } from '../src/rules/day-rules';
+import { maxSlotsPerDayRule } from '../src/rules/max-slots-per-day';
 
 describe('Slot Rules', () => {
   describe('maxSlotsPerDayRule', () => {

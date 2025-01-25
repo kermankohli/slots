@@ -1,4 +1,4 @@
-import { Slot } from '../types';
+import { Slot } from './slot';
 
 /**
  * A rule is a function that takes slots and returns forbidden slots

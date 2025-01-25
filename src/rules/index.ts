@@ -1,2 +1,1 @@
-export * from './types';
-export * from './day-rules'; 
+export * from './max-slots-per-day'; 

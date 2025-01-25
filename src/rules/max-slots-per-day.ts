@@ -1,5 +1,5 @@
 import { Slot } from '../types';
-import { SlotRule } from './types';
+import { SlotRule } from '../types';
 
 /**
  * Creates a rule that limits the number of slots per day
@@ -27,4 +27,4 @@ export const maxSlotsPerDayRule = (maxSlots: number): SlotRule => (slots) => {
       }
       return [];
     });
-};
+}; 
