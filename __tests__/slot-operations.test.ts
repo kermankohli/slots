@@ -4,13 +4,6 @@ import { Slot, composeOperators } from '../src/types';
 import { createSlotFromHourOffset } from './helpers/slot-test-helpers';
 
 describe('slot operations', () => {
-  const baseDate = DateTime.fromISO('2024-01-01T10:00:00.000Z');
-  
-  const createSlot = (startHours: number, endHours: number, metadata: Record<string, any> = {}): Slot => ({
-    start: baseDate.plus({ hours: startHours }),
-    end: baseDate.plus({ hours: endHours }),
-    metadata
-  });
 
   describe('addSlots', () => {
     it('should add a single slot', () => {
