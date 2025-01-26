@@ -3,7 +3,7 @@ import { Slot } from '../src/types';
 import {
   intersectSlots,
   unionSlots,
-  differenceSlots,
+  removeOverlappingSlots,
   symmetricDifferenceSlots,
 } from '../src/utils/slot-set-operations';
 import { createSlotFromISO } from './helpers/slot-test-helpers';
@@ -89,14 +89,14 @@ describe('slot array operations', () => {
     });
   });
 
-  describe('differenceSlots with arrays', () => {
+  describe('removeOverlappingSlots with arrays', () => {
     it('should return all slots from A when B is empty', () => {
       const slotsA = [
         createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z')
       ];
       const slotsB: Slot[] = [];
 
-      const result = differenceSlots(slotsA, slotsB, defaultOptions);
+      const result = removeOverlappingSlots(slotsA, slotsB, defaultOptions);
       expect(result).toHaveLength(1);
       expect(result[0].start.toISO()).toBe('2024-03-18T10:00:00.000Z');
     });
@@ -109,7 +109,7 @@ describe('slot array operations', () => {
         createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T12:00:00.000Z')
       ];
 
-      const result = differenceSlots(slotsA, slotsB, defaultOptions);
+      const result = removeOverlappingSlots(slotsA, slotsB, defaultOptions);
       expect(result).toHaveLength(2);
       expect(result[0].start.toISO()).toBe('2024-03-18T10:00:00.000Z');
       expect(result[0].end.toISO()).toBe('2024-03-18T11:00:00.000Z');

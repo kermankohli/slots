@@ -72,16 +72,16 @@ export function unionSlots(
 }
 
 /**
- * Returns the difference between slots (parts of a that don't overlap with b)
- * Works with both single slots and arrays of slots
+ * Returns slots from A with any overlapping portions from B removed
+ * Will split slots that partially overlap and keep non-overlapping portions
  */
-export function differenceSlots(
-  a: SlotInput,
-  b: SlotInput,
+export const removeOverlappingSlots = (
+  slots: SlotInput,
+  slotsToRemove: SlotInput,
   options: SlotOperationOptions
-): SlotOperationResult {
-  const slotsA = normalizeInput(a);
-  const slotsB = normalizeInput(b);
+): SlotOperationResult => {
+  const slotsA = normalizeInput(slots);
+  const slotsB = normalizeInput(slotsToRemove);
   
   let result = [...slotsA];
   
@@ -115,7 +115,7 @@ export function differenceSlots(
   }
   
   return mergeOverlappingSlots(result);
-}
+};
 
 /**
  * Returns the symmetric difference between slots (parts that belong to only one input)
@@ -126,8 +126,8 @@ export function symmetricDifferenceSlots(
   b: SlotInput,
   options: SlotOperationOptions
 ): SlotOperationResult {
-  const aMinusB = differenceSlots(a, b, options);
-  const bMinusA = differenceSlots(b, a, options);
+  const aMinusB = removeOverlappingSlots(a, b, options);
+  const bMinusA = removeOverlappingSlots(b, a, options);
   
   return mergeOverlappingSlots([...aMinusB, ...bMinusA]);
 }
@@ -148,7 +148,7 @@ export function applySetOperation(
     case 'intersection':
       return intersectSlots(a, b, options);
     case 'difference':
-      return differenceSlots(a, b, options);
+      return removeOverlappingSlots(a, b, options);
     case 'symmetric_difference':
       return symmetricDifferenceSlots(a, b, options);
   }

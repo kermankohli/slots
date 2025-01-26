@@ -1,8 +1,8 @@
 import { DateTime, Duration } from 'luxon';
 import { Slot, MetadataMerger, SlotMetadata } from '../src/types';
-import { intersectSlots, differenceSlots } from '../src/utils/slot-set-operations';
+import { intersectSlots, removeOverlappingSlots } from '../src/utils/slot-set-operations';
 import { generateSlots } from '../src/utils/slot-helpers';
-import { addSlots, removeSlots } from '../src/operations/slot-operations';
+import { addSlots, removeExactSlots } from '../src/operations/slot-operations';
 import { removeWeekendsRule } from '../src/rules/weekday-rule';
 import { allowTimeRangeRule } from '../src/rules/time-of-day-rule';
 
@@ -55,8 +55,8 @@ describe('timezone integration', () => {
 
       // Remove weekend slots
       const weekendRule = removeWeekendsRule();
-      const sydneyWeekdays = removeSlots(weekendRule(sydneyWorkWeek))(sydneyWorkWeek).data;
-      const sfWeekdays = removeSlots(weekendRule(sfWorkWeek))(sfWorkWeek).data;
+      const sydneyWeekdays = removeExactSlots(weekendRule(sydneyWorkWeek))(sydneyWorkWeek).data;
+      const sfWeekdays = removeExactSlots(weekendRule(sfWorkWeek))(sfWorkWeek).data;
 
       expect(sydneyWeekdays.length).toBe(10 * 8); // 10 weekdays * 8 hours
       expect(sydneyWeekdays.every(slot => slot.start.weekday <= 5)).toBe(true);
@@ -78,12 +78,12 @@ describe('timezone integration', () => {
         metadata: { timezone: 'America/Los_Angeles', type: 'meeting' }
       }];
 
-      // Use differenceSlots to properly handle overlapping slots
-      const sydneyAvailable = differenceSlots(sydneyWeekdays, sydneyBusy, { 
+      // Use removeOverlappingSlots to properly handle overlapping slots
+      const sydneyAvailable = removeOverlappingSlots(sydneyWeekdays, sydneyBusy, { 
         edgeStrategy: 'inclusive',
         metadataMerger: (a, b) => ({ ...a })  // Keep original metadata
       });
-      const sfAvailable = differenceSlots(sfWeekdays, sfBusy, { 
+      const sfAvailable = removeOverlappingSlots(sfWeekdays, sfBusy, { 
         edgeStrategy: 'inclusive',
         metadataMerger: (a, b) => ({ ...a })  // Keep original metadata
       });

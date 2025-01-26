@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { 
   intersectSlots, 
   unionSlots, 
-  differenceSlots, 
+  removeOverlappingSlots,
   symmetricDifferenceSlots,
   applySetOperation 
 } from '../src/utils/slot-set-operations';
@@ -255,12 +255,12 @@ describe('Slot Set Operations', () => {
     });
   });
 
-  describe('differenceSlots', () => {
+  describe('removeOverlappingSlots', () => {
     it('should return first slot if no overlap', () => {
       const slotA = createSlotFromHourOffset(0, 2, { owner: 'alice' });
       const slotB = createSlotFromHourOffset(3, 5, { owner: 'bob' });
 
-      const result = differenceSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      const result = removeOverlappingSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(slotA);
     });
@@ -269,7 +269,7 @@ describe('Slot Set Operations', () => {
       const slotA = createSlotFromHourOffset(0, 4, { owner: 'alice' });
       const slotB = createSlotFromHourOffset(2, 3, { owner: 'bob' });
 
-      const result = differenceSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
+      const result = removeOverlappingSlots(slotA, slotB, { metadataMerger: keepSecondMetadata });
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
         ...createSlotFromHourOffset(0, 2),
@@ -334,7 +334,7 @@ describe('Slot Set Operations', () => {
 
     it('should apply difference operation', () => {
       const result = applySetOperation('difference', slotA, slotB, { metadataMerger: keepSecondMetadata });
-      expect(result).toEqual(differenceSlots(slotA, slotB, { metadataMerger: keepSecondMetadata }));
+      expect(result).toEqual(removeOverlappingSlots(slotA, slotB, { metadataMerger: keepSecondMetadata }));
     });
 
     it('should apply symmetric difference operation', () => {

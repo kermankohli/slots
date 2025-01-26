@@ -24,9 +24,10 @@ export const addSlots = (newSlots: Slot | Slot[]): SlotOperator<Slot[]> => {
 };
 
 /**
- * Creates an operator that removes slots from the collection
+ * Creates an operator that removes slots that match exactly (same start and end times)
+ * For removing overlapping slots, use removeOverlappingSlots from slot-set-operations
  */
-export const removeSlots = (slotsToRemove: Slot | Slot[]): SlotOperator<Slot[]> => {
+export const removeExactSlots = (slotsToRemove: Slot | Slot[]): SlotOperator<Slot[]> => {
   return (currentSlots: Slot[]): OperationResult<Slot[]> => {
     const toRemove = Array.isArray(slotsToRemove) ? slotsToRemove : [slotsToRemove];
     return {
@@ -39,6 +40,9 @@ export const removeSlots = (slotsToRemove: Slot | Slot[]): SlotOperator<Slot[]> 
     };
   };
 };
+
+// Deprecated - use removeExactSlots instead
+export const removeSlots = removeExactSlots;
 
 /**
  * Creates an operator that updates a slot in the collection
