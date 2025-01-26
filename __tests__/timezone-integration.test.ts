@@ -5,6 +5,7 @@ import { generateSlots } from '../src/utils/slot-helpers';
 import { addSlots, removeExactSlots } from '../src/operations/slot-operations';
 import { removeWeekendsRule } from '../src/rules/weekday-rule';
 import { allowTimeRangeRule } from '../src/rules/time-of-day-rule';
+import { createBufferRule } from '../src/rules/buffer-rule';
 
 describe('timezone integration', () => {
   describe('complex scheduling scenario', () => {
@@ -63,7 +64,7 @@ describe('timezone integration', () => {
       expect(sfWeekdays.length).toBe(10 * 8); // 10 weekdays * 8 hours
       expect(sfWeekdays.every(slot => slot.start.weekday <= 5)).toBe(true);
 
-      // Step 4: Remove busy slots
+      // Step 4: Remove busy slots with buffer
       // Sydney person has a flight on Jan 16th
       const sydneyBusy: Slot[] = [{
         start: DateTime.fromISO('2024-01-16T10:00', { zone: 'Australia/Sydney' }),
@@ -78,28 +79,47 @@ describe('timezone integration', () => {
         metadata: { timezone: 'America/Los_Angeles', type: 'meeting' }
       }];
 
-      // Use removeOverlappingSlots to properly handle overlapping slots
-      const sydneyAvailable = removeOverlappingSlots(sydneyWeekdays, sydneyBusy, { 
+      // Create buffer rules (30 min before and after busy slots)
+      const sydneyBufferRule = createBufferRule(
+        slot => slot.metadata.type === 'flight',
+        30, // 30 minutes before
+        30  // 30 minutes after
+      );
+      const sfBufferRule = createBufferRule(
+        slot => slot.metadata.type === 'meeting',
+        30, // 30 minutes before
+        30  // 30 minutes after
+      );
+
+      // Apply buffer rules to busy slots
+      const sydneyBufferedBusy = sydneyBufferRule(sydneyBusy);
+      const sfBufferedBusy = sfBufferRule(sfBusy);
+
+      // Remove buffered busy slots
+      // Sydney allows partial slots
+      const sydneyAvailable = removeOverlappingSlots(sydneyWeekdays, [...sydneyBusy, ...sydneyBufferedBusy], { 
         edgeStrategy: 'inclusive',
         metadataMerger: (a, b) => ({ ...a })  // Keep original metadata
       });
-      const sfAvailable = removeOverlappingSlots(sfWeekdays, sfBusy, { 
+      // SF requires full hour slots
+      const sfAvailable = removeOverlappingSlots(sfWeekdays, [...sfBusy, ...sfBufferedBusy], { 
         edgeStrategy: 'inclusive',
-        metadataMerger: (a, b) => ({ ...a })  // Keep original metadata
+        metadataMerger: (a, b) => ({ ...a }),  // Keep original metadata
+        minDuration: Duration.fromObject({ hours: 1 }) // Only keep full hour slots
       });
 
-      // Verify busy slot removal
+      // Verify busy slot removal with buffer
       const sydneyFlightDay = DateTime.fromISO('2024-01-16', { zone: 'Australia/Sydney' });
       const sydneyFlightDaySlots = sydneyAvailable.filter(slot => 
         slot.start.toFormat('yyyy-MM-dd') === sydneyFlightDay.toFormat('yyyy-MM-dd')
       );
-      expect(sydneyFlightDaySlots.length).toBe(3); // Should have slots before and after flight
+      expect(sydneyFlightDaySlots.length).toBe(3); // 1 slot before (9:00-9:30), 1 slot after (3:30-4:00), and 1 slot after (4:00-5:00)
 
       const sfMeetingDay = DateTime.fromISO('2024-01-15', { zone: 'America/Los_Angeles' });
       const sfMeetingDaySlots = sfAvailable.filter(slot => 
         slot.start.toFormat('yyyy-MM-dd') === sfMeetingDay.toFormat('yyyy-MM-dd')
       );
-      expect(sfMeetingDaySlots.length).toBe(5); // Should have slots before and after meeting
+      expect(sfMeetingDaySlots.length).toBe(3); // Only full hour slots: 9:00-12:00 (3 slots)
 
       // Step 5: Find overlapping availability
       const metadataMerger: MetadataMerger = (a: SlotMetadata, b: SlotMetadata) => ({

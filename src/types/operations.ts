@@ -1,5 +1,7 @@
 import { Slot } from './slot';
 import { MetadataMerger } from './slot';
+import { Duration } from 'luxon';
+import { EdgeStrategy } from './slot';
 
 /**
  * Generic operation result type
@@ -33,6 +35,7 @@ export type SlotOperationResult = Slot[];
 export interface SlotOperationOptions {
   metadataMerger: MetadataMerger;
   edgeStrategy?: EdgeStrategy;
+  minDuration?: Duration; // Minimum duration for a slot to be included in the result
 }
 
 export type EdgeStrategy = 'inclusive' | 'exclusive'; 

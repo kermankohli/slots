@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
 import { Slot, SlotOperationOptions, EdgeStrategy, SlotOperationResult } from '../types';
 import { mergeOverlappingSlots } from './slot-helpers';
+import { Interval } from 'luxon';
 
 /**
  * Checks if two slots overlap based on edge strategy
@@ -93,22 +94,30 @@ export const removeOverlappingSlots = (
         continue;
       }
 
-      // Add left part if it exists
+      // Add left part if it exists and meets minimum duration
       if (slotA.start < slotB.start) {
-        newResult.push({
+        const leftPart = {
           start: slotA.start,
           end: slotB.start,
           metadata: slotA.metadata
-        });
+        };
+        if (!options.minDuration || 
+            Interval.fromDateTimes(leftPart.start, leftPart.end).length('minutes') >= options.minDuration.as('minutes')) {
+          newResult.push(leftPart);
+        }
       }
 
-      // Add right part if it exists
+      // Add right part if it exists and meets minimum duration
       if (slotA.end > slotB.end) {
-        newResult.push({
+        const rightPart = {
           start: slotB.end,
           end: slotA.end,
           metadata: slotA.metadata
-        });
+        };
+        if (!options.minDuration || 
+            Interval.fromDateTimes(rightPart.start, rightPart.end).length('minutes') >= options.minDuration.as('minutes')) {
+          newResult.push(rightPart);
+        }
       }
     }
     result = newResult;
