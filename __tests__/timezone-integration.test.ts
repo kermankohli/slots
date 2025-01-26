@@ -119,11 +119,7 @@ describe('timezone integration', () => {
       const sfMeetingDaySlots = sfAvailable.filter(slot => 
         slot.start.toFormat('yyyy-MM-dd') === sfMeetingDay.toFormat('yyyy-MM-dd')
       );
-      // Debug log the slots
-      console.log('SF Meeting Day Slots:');
-      sfMeetingDaySlots.forEach(slot => {
-        console.log(`${slot.start.toFormat('HH:mm')} - ${slot.end.toFormat('HH:mm')}`);
-      });
+
       expect(sfMeetingDaySlots.length).toBe(3); // Only full hour slots: 9:00-12:00 (3 slots)
 
       // Step 5: Find overlapping availability

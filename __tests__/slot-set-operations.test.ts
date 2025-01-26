@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 import { 
   intersectSlots, 
   unionSlots, 
@@ -229,6 +229,32 @@ describe('Slot Set Operations', () => {
         metadata: { owner: 'bob' }
       });
     });
+
+    it('should filter out intersections smaller than minDuration', () => {
+      const slotA = createSlotFromHourOffset(0, 2, { owner: 'alice' });
+      const slotB = createSlotFromHourOffset(1.5, 4, { owner: 'bob' });
+
+      const result = intersectSlots(slotA, slotB, { 
+        metadataMerger: keepSecondMetadata,
+        minDuration: Duration.fromObject({ hours: 1 })
+      });
+      expect(result).toHaveLength(0); // 30 min intersection is filtered out
+    });
+
+    it('should keep intersections larger than minDuration', () => {
+      const slotA = createSlotFromHourOffset(0, 3, { owner: 'alice' });
+      const slotB = createSlotFromHourOffset(1, 4, { owner: 'bob' });
+
+      const result = intersectSlots(slotA, slotB, { 
+        metadataMerger: keepSecondMetadata,
+        minDuration: Duration.fromObject({ hours: 1 })
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        ...createSlotFromHourOffset(1, 3),
+        metadata: { owner: 'bob' }
+      });
+    });
   });
 
   describe('unionSlots', () => {
@@ -277,6 +303,32 @@ describe('Slot Set Operations', () => {
       });
       expect(result[1]).toEqual({
         ...createSlotFromHourOffset(3, 4),
+        metadata: { owner: 'alice' }
+      });
+    });
+
+    it('should filter out parts smaller than minDuration', () => {
+      const slotA = createSlotFromHourOffset(0, 4, { owner: 'alice' });
+      const slotB = createSlotFromHourOffset(1.5, 2.5, { owner: 'bob' });
+
+      const result = removeOverlappingSlots(slotA, slotB, { 
+        metadataMerger: keepSecondMetadata,
+        minDuration: Duration.fromObject({ hours: 2 })
+      });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should keep parts larger than minDuration and filter out smaller parts', () => {
+      const slotA = createSlotFromHourOffset(0, 6, { owner: 'alice' });
+      const slotB = createSlotFromHourOffset(1, 2, { owner: 'bob' });
+
+      const result = removeOverlappingSlots(slotA, slotB, { 
+        metadataMerger: keepSecondMetadata,
+        minDuration: Duration.fromObject({ hours: 2 })
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        ...createSlotFromHourOffset(2, 6),
         metadata: { owner: 'alice' }
       });
     });

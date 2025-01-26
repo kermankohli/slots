@@ -47,6 +47,9 @@ export function intersectSlots(
       // For exclusive edges, if start equals end, there's no real overlap
       if (options.edgeStrategy === 'exclusive' && start.equals(end)) continue;
 
+      // Check if intersection meets minimum duration
+      if (options.minDuration && end.diff(start).as('milliseconds') < options.minDuration.as('milliseconds')) continue;
+
       result.push({
         start,
         end,
