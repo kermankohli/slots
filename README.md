@@ -1,6 +1,6 @@
-# Slots
+# @kermank/slots
 
-A robust TypeScript library for managing time slots with powerful set operations, overlap detection, and timezone support.
+A TypeScript library for handling time slots, scheduling, and timezone operations. Built with functional programming principles and timezone-aware design.
 
 ## Features
 
@@ -15,129 +15,103 @@ A robust TypeScript library for managing time slots with powerful set operations
 ## Installation
 
 ```bash
-npm install @your-org/slots
+npm install @kermank/slots
 ```
 
-## Quick Start
+## Usage
+
+### Basic Slot Operations
 
 ```typescript
-import { DateTime, Duration } from 'luxon';
-import { generateSlots, mergeOverlappingSlots } from '@your-org/slots';
+import { DateTime } from 'luxon';
+import { Slot, generateSlots, intersectSlots } from '@kermank/slots';
 
-// Generate 1-hour slots with 30-minute overlap
-const slots = generateSlots(
-  DateTime.fromISO('2024-01-01T09:00:00Z'),
-  DateTime.fromISO('2024-01-01T12:00:00Z'),
-  Duration.fromObject({ hours: 1 }),
-  Duration.fromObject({ minutes: 30 }),
-  { type: 'meeting' }
-);
+// Generate 1-hour slots for a day
+const slots = generateSlots({
+  start: DateTime.fromISO('2024-01-01T09:00:00', { zone: 'America/Los_Angeles' }),
+  end: DateTime.fromISO('2024-01-01T17:00:00', { zone: 'America/Los_Angeles' }),
+  duration: { hours: 1 }
+});
 
-// Merge overlapping slots
-const mergedSlots = mergeOverlappingSlots(slots);
+// Find overlapping slots between two sets
+const overlappingSlots = intersectSlots(slots1, slots2);
 ```
 
-## Core Concepts
+### Applying Rules
 
-### Slots
+```typescript
+import { 
+  removeWeekendsRule, 
+  allowTimeRangeRule, 
+  createBufferRule 
+} from '@kermank/slots';
 
-A slot represents a time period with metadata:
+// Remove weekend slots
+const weekdayRule = removeWeekendsRule();
+const weekdaySlots = weekdayRule(slots);
 
+// Apply working hours (9 AM - 5 PM)
+const workingHours = allowTimeRangeRule(9, 17);
+const workHourSlots = workingHours(slots);
+
+// Add buffer time around slots
+const bufferRule = createBufferRule(
+  slot => slot.metadata.type === 'meeting',
+  30, // 30 minutes before
+  30  // 30 minutes after
+);
+```
+
+### Timezone Operations
+
+```typescript
+import { DateTime } from 'luxon';
+import { generateSlots } from '@kermank/slots';
+
+// Generate slots in different timezones
+const sydneySlots = generateSlots({
+  start: DateTime.fromISO('2024-01-01T09:00:00', { zone: 'Australia/Sydney' }),
+  end: DateTime.fromISO('2024-01-01T17:00:00', { zone: 'Australia/Sydney' }),
+  duration: { hours: 1 }
+});
+
+const sfSlots = generateSlots({
+  start: DateTime.fromISO('2024-01-01T09:00:00', { zone: 'America/Los_Angeles' }),
+  end: DateTime.fromISO('2024-01-01T17:00:00', { zone: 'America/Los_Angeles' }),
+  duration: { hours: 1 }
+});
+
+// Find overlapping availability across timezones
+const globalAvailability = intersectSlots(sydneySlots, sfSlots);
+```
+
+## API Reference
+
+### Types
+
+#### Slot
 ```typescript
 interface Slot {
   start: DateTime;  // Luxon DateTime
   end: DateTime;    // Luxon DateTime
-  metadata: Record<string, any>;
+  metadata?: any;   // Optional metadata
 }
 ```
 
-### Set Operations
+### Core Functions
 
-```typescript
-import { unionSlots, intersectSlots, differenceSlots } from '@your-org/slots';
+- `generateSlots(options)`: Generate time slots with specified duration
+- `intersectSlots(slots1, slots2)`: Find overlapping slots between two sets
+- `removeOverlappingSlots(slots, overlapping)`: Remove overlapping slots from a set
+- `addSlots(slots1, slots2)`: Combine two sets of slots
+- `removeExactSlots(toRemove)(slots)`: Remove specific slots from a set
 
-// Union: Combine slots and merge overlaps
-const union = unionSlots(slotA, slotB, {
-  metadataMerger: (a, b) => ({ ...a, ...b })
-});
+### Rules
 
-// Intersection: Find overlapping portions
-const intersection = intersectSlots(slotA, slotB, {
-  metadataMerger: (a, b) => ({ ...a, ...b })
-});
-
-// Difference: Remove overlapping portions
-const difference = differenceSlots(slotA, slotB, {
-  metadataMerger: (a, b) => ({ ...a, ...b })
-});
-```
-
-### Overlap Strategies
-
-```typescript
-// Strict: Slots must actually overlap
-mergeOverlappingSlots(slots, defaultMetadataMerger, 'strict');
-
-// Inclusive: Touching slots are considered overlapping
-mergeOverlappingSlots(slots, defaultMetadataMerger, 'inclusive');
-```
-
-### Timezone Handling
-
-All times are stored and manipulated in UTC. The library uses Luxon's DateTime for reliable timezone support:
-
-```typescript
-// Create slots in different timezones
-const localSlot = {
-  start: DateTime.fromObject({ hour: 9 }, { zone: 'America/New_York' }).toUTC(),
-  end: DateTime.fromObject({ hour: 17 }, { zone: 'America/New_York' }).toUTC(),
-  metadata: { type: 'working-hours' }
-};
-```
-
-## Advanced Usage
-
-### Custom Metadata Merging
-
-```typescript
-const customMerger = (meta1: any, meta2: any) => ({
-  values: [...(meta1.values || []), ...(meta2.values || [])]
-});
-
-const merged = mergeSlots(slot1, slot2, customMerger);
-```
-
-### Slot Operations
-
-```typescript
-import { addSlots, removeSlots, updateSlot } from '@your-org/slots';
-
-// Add slots (automatically merges overlaps)
-const withNewSlots = addSlots(newSlots)(existingSlots);
-
-// Remove slots
-const withoutSlots = removeSlots(slotsToRemove)(existingSlots);
-
-// Update a slot
-const updated = updateSlot(oldSlot, newSlot)(existingSlots);
-```
-
-### Operation Composition
-
-```typescript
-import { composeOperators } from '@your-org/slots';
-
-const operation = composeOperators(
-  addSlots(newSlot),
-  removeSlots(oldSlot)
-);
-
-const result = operation(slots);
-```
-
-## API Documentation
-
-[Link to detailed API documentation]
+- `removeWeekendsRule()`: Filter out weekend slots
+- `allowTimeRangeRule(startHour, endHour)`: Filter slots to specific hours
+- `createBufferRule(predicate, beforeMinutes, afterMinutes)`: Add buffer time around slots
+- `maxSlotsPerDayRule(maxSlots)`: Limit the number of slots per day
 
 ## Contributing
 
@@ -145,4 +119,4 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-MIT © [Your Organization] 
+MIT © Kerman Kohli 

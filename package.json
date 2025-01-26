@@ -1,17 +1,35 @@
 {
-  "name": "your-library-name",
+  "name": "@kermank/slots",
   "version": "0.1.0",
-  "description": "A TypeScript library",
+  "description": "A TypeScript library for handling time slots, scheduling, and timezone operations",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "publish:patch": "npm run version:patch && npm publish --access public",
+    "publish:minor": "npm run version:minor && npm publish --access public",
+    "publish:major": "npm run version:major && npm publish --access public"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "typescript",
+    "scheduling",
+    "timezone",
+    "slots",
+    "calendar",
+    "time-management"
+  ],
+  "author": "Kerman Kohli",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kermankohli/slots.git"
+  },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.11",
@@ -26,5 +44,9 @@
   ],
   "dependencies": {
     "luxon": "^3.5.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/kermankohli/slots/issues"
+  },
+  "homepage": "https://github.com/kermankohli/slots#readme"
 }
