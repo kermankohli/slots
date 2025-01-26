@@ -1,7 +1,6 @@
 import { Slot } from './slot';
 import { MetadataMerger } from './slot';
 import { Duration } from 'luxon';
-import { EdgeStrategy } from './slot';
 
 /**
  * Generic operation result type
