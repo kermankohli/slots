@@ -42,11 +42,10 @@ describe('timezone integration', () => {
       expect(sfAllSlots[0].start.hour).toBe(0); // Should start at midnight
 
       // Step 2: Apply working hours rule (9 AM - 5 PM in respective timezones)
-      const sydneyWorkingHours = allowTimeRangeRule(9, 17); // 9 AM to 5 PM
-      const sfWorkingHours = allowTimeRangeRule(9, 17); // 9 AM to 5 PM
+      const workingHours = allowTimeRangeRule(9, 17); // 9 AM to 5 PM in any timezone
 
-      const sydneyWorkWeek = sydneyWorkingHours(sydneyAllSlots);
-      const sfWorkWeek = sfWorkingHours(sfAllSlots);
+      const sydneyWorkWeek = workingHours(sydneyAllSlots);
+      const sfWorkWeek = workingHours(sfAllSlots);
 
       // Verify working hours filtering
       expect(sydneyWorkWeek.length).toBe(14 * 8); // 14 days * 8 hours (9 AM - 5 PM)
