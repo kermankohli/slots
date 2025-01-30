@@ -1,5 +1,5 @@
-import { DateTime } from 'luxon';
-import { Slot } from '../src/types';
+import { DateTime, Duration } from 'luxon';
+import { Slot, SlotOperationOptions } from '../src/types';
 import {
   intersectSlots,
   unionSlots,
@@ -115,6 +115,79 @@ describe('slot array operations', () => {
       expect(result[0].end.toISO()).toBe('2024-03-18T11:00:00.000Z');
       expect(result[1].start.toISO()).toBe('2024-03-18T12:00:00.000Z');
       expect(result[1].end.toISO()).toBe('2024-03-18T13:00:00.000Z');
+    });
+
+    it('should maintain original slot durations when removing overlapping slots', () => {
+      // Create a series of 1-hour slots
+      const hourlySlots: Slot[] = [
+        createSlotFromISO('2024-03-18T09:00:00.000Z', '2024-03-18T10:00:00.000Z'),
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z'),
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T12:00:00.000Z'),
+        createSlotFromISO('2024-03-18T12:00:00.000Z', '2024-03-18T13:00:00.000Z')
+      ];
+
+      // Create a blocking slot that overlaps with some hours
+      const blockingSlots: Slot[] = [{
+        start: DateTime.fromISO('2024-03-18T10:30:00.000Z', { zone: 'UTC' }),
+        end: DateTime.fromISO('2024-03-18T11:30:00.000Z', { zone: 'UTC' }),
+        metadata: {}
+      }];
+
+      const options: SlotOperationOptions = {
+        edgeStrategy: 'exclusive',
+        metadataMerger: (a, b) => ({ ...a, ...b }),
+        minDuration: Duration.fromObject({ minutes: 60 })
+      };
+
+      const result = removeOverlappingSlots(hourlySlots, blockingSlots, options);
+
+      // We expect:
+      // 1. The 9-10 slot should remain unchanged (1 hour)
+      // 2. The 12-13 slot should remain unchanged (1 hour)
+      // The partial slots 10:00-10:30 and 11:30-12:00 should be filtered out as they're less than 1 hour
+      expect(result).toHaveLength(2);
+      
+      // Check first slot is unchanged (9-10)
+      expect(result[0].start.toISO()).toBe('2024-03-18T09:00:00.000Z');
+      expect(result[0].end.toISO()).toBe('2024-03-18T10:00:00.000Z');
+
+      // Check last slot is unchanged (12-13)
+      expect(result[1].start.toISO()).toBe('2024-03-18T12:00:00.000Z');
+      expect(result[1].end.toISO()).toBe('2024-03-18T13:00:00.000Z');
+
+      // Verify all slots have appropriate durations
+      result.forEach(slot => {
+        const durationInMinutes = slot.end.diff(slot.start).as('minutes');
+        expect(durationInMinutes).toBe(60); // All slots should be exactly 1 hour
+      });
+    });
+
+    it('should handle multiple blocking slots while maintaining durations', () => {
+      const hourlySlots: Slot[] = [
+        createSlotFromISO('2024-03-18T09:00:00.000Z', '2024-03-18T10:00:00.000Z'),
+        createSlotFromISO('2024-03-18T10:00:00.000Z', '2024-03-18T11:00:00.000Z'),
+        createSlotFromISO('2024-03-18T11:00:00.000Z', '2024-03-18T12:00:00.000Z')
+      ];
+
+      const blockingSlots: Slot[] = [
+        createSlotFromISO('2024-03-18T09:30:00.000Z', '2024-03-18T10:15:00.000Z'),
+        createSlotFromISO('2024-03-18T10:45:00.000Z', '2024-03-18T11:30:00.000Z')
+      ];
+
+      const options: SlotOperationOptions = {
+        edgeStrategy: 'exclusive',
+        metadataMerger: (a, b) => ({ ...a, ...b }),
+        minDuration: Duration.fromObject({ minutes: 60 })
+      };
+
+      const result = removeOverlappingSlots(hourlySlots, blockingSlots, options);
+
+      // With minDuration of 60 minutes, we expect no slots to remain
+      // because all remaining segments would be less than 1 hour:
+      // - 09:00-09:30 (30 min)
+      // - 10:15-10:45 (30 min)
+      // - 11:30-12:00 (30 min)
+      expect(result).toHaveLength(0);
     });
   });
 

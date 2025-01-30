@@ -123,7 +123,8 @@ export const removeOverlappingSlots = (
     result = newResult;
   }
   
-  return mergeOverlappingSlots(result);
+  // Return result without merging overlapping slots
+  return result;
 };
 
 /**
