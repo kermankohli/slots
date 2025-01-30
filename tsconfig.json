@@ -9,6 +9,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"],
+  "include": ["src", "__tests__/rules/time-of-day-rule.test.ts"],
   "exclude": ["node_modules", "dist", "test"]
 } 
