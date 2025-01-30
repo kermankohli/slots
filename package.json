@@ -1,6 +1,6 @@
 {
   "name": "@kermank/slots",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A TypeScript library for handling time slots, scheduling, and timezone operations",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
