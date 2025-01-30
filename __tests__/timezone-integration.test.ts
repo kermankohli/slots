@@ -1,5 +1,5 @@
 import { DateTime, Duration } from 'luxon';
-import { Slot, MetadataMerger, SlotMetadata } from '../src/types';
+import { Slot, MetadataMerger } from '../src/types';
 import { intersectSlots, removeOverlappingSlots } from '../src/utils/slot-set-operations';
 import { generateSlots } from '../src/utils/slot-helpers';
 import { addSlots, removeExactSlots } from '../src/operations/slot-operations';
@@ -122,7 +122,7 @@ describe('timezone integration', () => {
       expect(sfMeetingDaySlots.length).toBe(3); // Only full hour slots: 9:00-12:00 (3 slots)
 
       // Step 5: Find overlapping availability
-      const metadataMerger: MetadataMerger = (a: SlotMetadata, b: SlotMetadata) => ({
+      const metadataMerger: MetadataMerger = (a: any, b: any) => ({
         timezone: `${a.timezone} ∩ ${b.timezone}`,
         type: 'overlap'
       });

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { Slot, MetadataMerger, SlotMetadata } from '../src/types';
+import { Slot, MetadataMerger } from '../src/types';
 import { intersectSlots } from '../src/utils/slot-set-operations';
 
 describe('timezone operations', () => {
@@ -24,7 +24,7 @@ describe('timezone operations', () => {
       ];
 
       // Simple metadata merger that keeps timezone information
-      const metadataMerger: MetadataMerger = (a: SlotMetadata, b: SlotMetadata) => ({
+      const metadataMerger: MetadataMerger = (a: any, b: any) => ({
         timezone: `${a.timezone} ∩ ${b.timezone}` // Show intersection of timezones
       });
 

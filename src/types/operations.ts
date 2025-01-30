@@ -1,4 +1,4 @@
-import { Slot, SlotMetadata } from './slot';
+import { Slot } from './slot';
 import { MetadataMerger } from './metadata';
 import { Duration } from 'luxon';
 

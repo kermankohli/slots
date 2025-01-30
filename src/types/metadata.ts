@@ -1,9 +1,7 @@
-import { SlotMetadata } from './slot';
-
 /**
  * Function type for custom metadata merging
  */
-export type MetadataMerger = (a: SlotMetadata, b: SlotMetadata) => SlotMetadata;
+export type MetadataMerger = (a: any, b: any) => any;
 
 /**
  * Default metadata merge behavior - keep last values
@@ -36,7 +34,7 @@ export interface MetadataKeyConfig {
  */
 export interface MetadataMergeConfig {
   defaultStrategy: MetadataStrategy;
-  customMerge?: (meta1: SlotMetadata, meta2: SlotMetadata) => SlotMetadata;
+  customMerge?: (meta1: any, meta2: any) => any;
   keyStrategies?: {
     [key: string]: MetadataKeyConfig;
   };

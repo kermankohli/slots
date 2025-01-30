@@ -6,14 +6,7 @@ import { DateTime } from 'luxon';
 export interface Slot {
   start: DateTime;
   end: DateTime;
-  metadata: SlotMetadata;
-}
-
-/**
- * Simple key-value metadata structure
- */
-export interface SlotMetadata {
-  [key: string]: any;
+  metadata: any;
 }
 
 /**
