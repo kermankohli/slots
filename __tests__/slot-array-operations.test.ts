@@ -189,6 +189,124 @@ describe('slot array operations', () => {
       // - 11:30-12:00 (30 min)
       expect(result).toHaveLength(0);
     });
+
+    it('should maintain slot structure across timezone changes', () => {
+      // Create slots in Sydney timezone
+      const sydneySlots: Slot[] = [
+        {
+          start: DateTime.fromISO('2025-02-04T09:00:00.000', { zone: 'Australia/Sydney' }),
+          end: DateTime.fromISO('2025-02-04T10:00:00.000', { zone: 'Australia/Sydney' }),
+          metadata: {}
+        },
+        {
+          start: DateTime.fromISO('2025-02-04T10:00:00.000', { zone: 'Australia/Sydney' }),
+          end: DateTime.fromISO('2025-02-04T11:00:00.000', { zone: 'Australia/Sydney' }),
+          metadata: {}
+        },
+        {
+          start: DateTime.fromISO('2025-02-04T11:00:00.000', { zone: 'Australia/Sydney' }),
+          end: DateTime.fromISO('2025-02-04T12:00:00.000', { zone: 'Australia/Sydney' }),
+          metadata: {}
+        }
+      ];
+
+      // Create blocking slot in Calcutta timezone
+      const calcuttaSlots: Slot[] = [{
+        start: DateTime.fromISO('2025-02-04T03:30:00.000', { zone: 'Asia/Calcutta' }),
+        end: DateTime.fromISO('2025-02-04T04:30:00.000', { zone: 'Asia/Calcutta' }),
+        metadata: { type: 'meeting' }
+      }];
+
+      const options: SlotOperationOptions = {
+        edgeStrategy: 'exclusive',
+        metadataMerger: (a, b) => ({ ...a, ...b }),
+        minDuration: Duration.fromObject({ minutes: 60 })
+      };
+
+      const result = removeOverlappingSlots(sydneySlots, calcuttaSlots, options);
+
+      // Log for debugging
+      console.log('Result slots:', result.map(slot => ({
+        start: slot.start.toFormat('HH:mm ZZZZ'),
+        end: slot.end.toFormat('HH:mm ZZZZ'),
+        duration: slot.end.diff(slot.start).as('minutes')
+      })));
+
+      // Verify we maintain original slot structure
+      expect(result.length).toBeGreaterThan(0);
+      
+      // Verify all remaining slots are exactly 1 hour
+      result.forEach(slot => {
+        const durationInMinutes = slot.end.diff(slot.start).as('minutes');
+        expect(durationInMinutes).toBe(60);
+      });
+
+      // Verify timezone information is preserved
+      result.forEach(slot => {
+        expect(slot.start.zoneName).toBe('Australia/Sydney');
+        expect(slot.end.zoneName).toBe('Australia/Sydney');
+      });
+    });
+
+    it('should handle multiple timezone changes while maintaining slot structure', () => {
+      // Create work week slots in Sydney timezone
+      const workWeekSlots: Slot[] = [
+        {
+          start: DateTime.fromISO('2025-02-04T09:00:00.000', { zone: 'Australia/Sydney' }),
+          end: DateTime.fromISO('2025-02-04T17:00:00.000', { zone: 'Australia/Sydney' }),
+          metadata: {}
+        },
+        {
+          start: DateTime.fromISO('2025-02-06T09:00:00.000', { zone: 'Australia/Sydney' }),
+          end: DateTime.fromISO('2025-02-06T17:00:00.000', { zone: 'Australia/Sydney' }),
+          metadata: {}
+        }
+      ];
+
+      // Create location change slots in Calcutta timezone
+      const locationChangeSlots: Slot[] = [
+        {
+          start: DateTime.fromISO('2025-02-04T16:00:00.000', { zone: 'Asia/Calcutta' }),
+          end: DateTime.fromISO('2025-02-05T00:00:00.000', { zone: 'Asia/Calcutta' }),
+          metadata: { isLocationChange: true }
+        },
+        {
+          start: DateTime.fromISO('2025-02-05T21:55:00.000', { zone: 'Asia/Calcutta' }),
+          end: DateTime.fromISO('2025-02-06T05:55:00.000', { zone: 'Asia/Calcutta' }),
+          metadata: { isLocationChange: true }
+        }
+      ];
+
+      const options: SlotOperationOptions = {
+        edgeStrategy: 'exclusive',
+        metadataMerger: (a, b) => ({ ...a, ...b }),
+        minDuration: Duration.fromObject({ minutes: 60 })
+      };
+
+      const result = removeOverlappingSlots(workWeekSlots, locationChangeSlots, options);
+
+      // Log for debugging
+      console.log('Result slots:', result.map(slot => ({
+        start: slot.start.toFormat('yyyy-MM-dd HH:mm ZZZZ'),
+        end: slot.end.toFormat('yyyy-MM-dd HH:mm ZZZZ'),
+        duration: slot.end.diff(slot.start).as('hours')
+      })));
+
+      // Verify we get some results
+      expect(result.length).toBeGreaterThan(0);
+
+      // Verify all slots maintain minimum duration
+      result.forEach(slot => {
+        const durationInHours = slot.end.diff(slot.start).as('hours');
+        expect(durationInHours).toBeGreaterThanOrEqual(1);
+      });
+
+      // Verify timezone information is preserved
+      result.forEach(slot => {
+        expect(slot.start.zoneName).toBe('Australia/Sydney');
+        expect(slot.end.zoneName).toBe('Australia/Sydney');
+      });
+    });
   });
 
   describe('symmetricDifferenceSlots with arrays', () => {

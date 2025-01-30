@@ -100,7 +100,7 @@ export const removeOverlappingSlots = (
       if (slotA.start < slotB.start) {
         const leftPart = {
           start: slotA.start,
-          end: slotB.start,
+          end: slotA.start.zoneName ? slotB.start.setZone(slotA.start.zoneName) : slotB.start,
           metadata: slotA.metadata
         };
         if (!options.minDuration || leftPart.end.diff(leftPart.start).as('milliseconds') >= options.minDuration.as('milliseconds')) {
@@ -111,7 +111,7 @@ export const removeOverlappingSlots = (
       // Add right part if it exists and meets minimum duration
       if (slotA.end > slotB.end) {
         const rightPart = {
-          start: slotB.end,
+          start: slotA.start.zoneName ? slotB.end.setZone(slotA.start.zoneName) : slotB.end,
           end: slotA.end,
           metadata: slotA.metadata
         };
@@ -123,7 +123,6 @@ export const removeOverlappingSlots = (
     result = newResult;
   }
   
-  // Return result without merging overlapping slots
   return result;
 };
 
