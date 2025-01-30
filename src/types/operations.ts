@@ -1,5 +1,5 @@
-import { Slot } from './slot';
-import { MetadataMerger } from './slot';
+import { Slot, SlotMetadata } from './slot';
+import { MetadataMerger } from './metadata';
 import { Duration } from 'luxon';
 
 /**

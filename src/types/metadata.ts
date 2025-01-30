@@ -1,6 +1,19 @@
 import { SlotMetadata } from './slot';
 
 /**
+ * Function type for custom metadata merging
+ */
+export type MetadataMerger = (a: SlotMetadata, b: SlotMetadata) => SlotMetadata;
+
+/**
+ * Default metadata merge behavior - keep last values
+ */
+export const defaultMetadataMerger: MetadataMerger = (meta1, meta2) => ({
+  ...meta1,
+  ...meta2
+});
+
+/**
  * Base metadata type
  */
 export type Metadata = Record<string, any>;

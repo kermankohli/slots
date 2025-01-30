@@ -17,19 +17,6 @@ export interface SlotMetadata {
 }
 
 /**
- * Function type for custom metadata merging
- */
-export type MetadataMerger = (a: SlotMetadata, b: SlotMetadata) => SlotMetadata;
-
-/**
  * Strategy for determining if slots overlap
  */
 export type OverlapStrategy = 'strict' | 'inclusive';
-
-/**
- * Default metadata merge behavior - keep last values
- */
-export const defaultMetadataMerger: MetadataMerger = (meta1, meta2) => ({
-  ...meta1,
-  ...meta2
-}); 
